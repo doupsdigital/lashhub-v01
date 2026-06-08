@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Profissional, HorarioProfissional } from '../types';
 import { registrarLog } from '../utils/log';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 interface HorarioDia {
   ativo: boolean;
@@ -42,6 +43,20 @@ export default function Profissionais() {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Confirm Modal States
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    title: string;
+    description: string;
+    warningText?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const openConfirmModal = (config: typeof confirmModalConfig) => {
+    setConfirmModalConfig(config);
+    setConfirmModalOpen(true);
+  };
   const [editingProfissional, setEditingProfissional] = useState<ProfissionalWithHorarios | null>(null);
 
   // Form States
@@ -269,17 +284,27 @@ export default function Profissionais() {
         return;
       }
 
-      if (!confirm(`Tem certeza que deseja excluir permanentemente a profissional "${prof.nome} ${prof.sobrenome}" e toda sua agenda?`)) return;
+      openConfirmModal({
+        title: 'Excluir Profissional?',
+        description: `Tem certeza que deseja excluir permanentemente a profissional "${prof.nome} ${prof.sobrenome}" e toda sua agenda?`,
+        warningText: 'Esta ação é permanente e não pode ser desfeita.',
+        onConfirm: async () => {
+          try {
+            const { error: delError } = await supabase
+              .from('profissionais')
+              .delete()
+              .eq('id', prof.id);
 
-      const { error: delError } = await supabase
-        .from('profissionais')
-        .delete()
-        .eq('id', prof.id);
+            if (delError) throw delError;
 
-      if (delError) throw delError;
-
-      await registrarLog('excluiu', 'profissional', prof.id, `Excluiu profissional "${prof.nome} ${prof.sobrenome}"`);
-      fetchData();
+            await registrarLog('excluiu', 'profissional', prof.id, `Excluiu profissional "${prof.nome} ${prof.sobrenome}"`);
+            fetchData();
+          } catch (err) {
+            console.error(err);
+            showTemporaryError('Falha ao excluir profissional.');
+          }
+        }
+      });
     } catch (err) {
       console.error(err);
       showTemporaryError('Falha ao verificar agendamentos ou excluir profissional.');
@@ -561,6 +586,16 @@ export default function Profissionais() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={confirmModalConfig?.onConfirm || (() => {})}
+        title={confirmModalConfig?.title || ''}
+        description={confirmModalConfig?.description || ''}
+        warningText={confirmModalConfig?.warningText}
+        type="danger"
+      />
     </div>
   );
 }

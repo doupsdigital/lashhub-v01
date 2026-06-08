@@ -27,6 +27,7 @@ import type {
   HorarioProfissional
 } from '../types';
 import { registrarLog } from '../utils/log';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 interface AgendamentoServicoInput {
   servico_id: string;
@@ -82,6 +83,23 @@ export default function Agendamentos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Confirm Modal States
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    title: string;
+    description: string;
+    warningText?: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'danger' | 'warning' | 'success';
+    onConfirm: () => void;
+  } | null>(null);
+
+  const openConfirmModal = (config: typeof confirmModalConfig) => {
+    setConfirmModalConfig(config);
+    setConfirmModalOpen(true);
+  };
 
   // Selected entities for editing/viewing details
   const [selectedAppt, setSelectedAppt] = useState<AgendamentoWithRelations | null>(null);
@@ -594,57 +612,73 @@ export default function Agendamentos() {
     }
   };
 
-  // CHANGE STATUS OF APPOINTMENT
   const handleChangeStatus = async (appt: AgendamentoWithRelations, newStatus: 'cancelado' | 'concluido') => {
-    const actionLabel = newStatus === 'concluido' ? 'concluir' : 'cancelar';
-    if (!confirm(`Tem certeza que deseja ${actionLabel} este agendamento?`)) return;
+    const isCompleted = newStatus === 'concluido';
+    const clientName = appt.cliente ? `${appt.cliente.nome} ${appt.cliente.sobrenome}` : 'Cliente';
+    
+    openConfirmModal({
+      title: isCompleted ? 'Concluir Atendimento?' : 'Cancelar Agendamento?',
+      description: isCompleted 
+        ? `Tem certeza que deseja marcar o atendimento de "${clientName}" como concluído?`
+        : `Tem certeza que deseja cancelar o agendamento de "${clientName}"?`,
+      confirmText: isCompleted ? 'Concluir' : 'Cancelar Agendamento',
+      cancelText: 'Voltar',
+      type: isCompleted ? 'success' : 'warning',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('agendamentos')
+            .update({ status: newStatus })
+            .eq('id', appt.id);
 
-    try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: newStatus })
-        .eq('id', appt.id);
+          if (error) throw error;
 
-      if (error) throw error;
+          await registrarLog(
+            'editou', 
+            'agendamento', 
+            appt.id, 
+            `Alterou status do agendamento de "${clientName}" para "${newStatus}"`
+          );
 
-      const clientName = appt.cliente ? `${appt.cliente.nome} ${appt.cliente.sobrenome}` : 'Cliente';
-      await registrarLog(
-        'editou', 
-        'agendamento', 
-        appt.id, 
-        `Alterou status do agendamento de "${clientName}" para "${newStatus}"`
-      );
-
-      showTemporarySuccess(`Agendamento marcado como ${newStatus}!`);
-      fetchAppointments();
-    } catch (err) {
-      console.error(err);
-      showTemporaryError(`Falha ao alterar status do agendamento.`);
-    }
+          showTemporarySuccess(`Agendamento marcado como ${newStatus}!`);
+          fetchAppointments();
+        } catch (err) {
+          console.error(err);
+          showTemporaryError(`Falha ao alterar status do agendamento.`);
+        }
+      }
+    });
   };
 
-  // EXCLUIR AGENDAMENTO PERMANENTEMENTE
   const handleDeleteAppointment = async (appt: AgendamentoWithRelations) => {
-    if (!confirm('Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento? Esta ação não pode ser desfeita.')) return;
+    const clientName = appt.cliente ? `${appt.cliente.nome} ${appt.cliente.sobrenome}` : 'Cliente';
+    
+    openConfirmModal({
+      title: 'Excluir Agendamento?',
+      description: `Tem certeza que deseja excluir permanentemente o agendamento de "${clientName}"?`,
+      warningText: 'Esta ação é permanente e não pode ser desfeita.',
+      confirmText: 'Excluir',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('agendamentos')
+            .delete()
+            .eq('id', appt.id);
 
-    try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .delete()
-        .eq('id', appt.id);
+          if (error) throw error;
 
-      if (error) throw error;
+          await registrarLog('excluiu', 'agendamento', appt.id, `Excluiu permanentemente agendamento de "${clientName}"`);
 
-      const clientName = appt.cliente ? `${appt.cliente.nome} ${appt.cliente.sobrenome}` : 'Cliente';
-      await registrarLog('excluiu', 'agendamento', appt.id, `Excluiu permanentemente agendamento de "${clientName}"`);
-
-      setIsDetailOpen(false);
-      showTemporarySuccess('Agendamento excluído com sucesso!');
-      fetchAppointments();
-    } catch (err) {
-      console.error(err);
-      showTemporaryError('Falha ao excluir agendamento.');
-    }
+          setIsDetailOpen(false);
+          showTemporarySuccess('Agendamento excluído com sucesso!');
+          fetchAppointments();
+        } catch (err) {
+          console.error(err);
+          showTemporaryError('Falha ao excluir agendamento.');
+        }
+      }
+    });
   };
 
   // Visual status mapper for calendar blocks
@@ -1478,6 +1512,18 @@ export default function Agendamentos() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={confirmModalConfig?.onConfirm || (() => {})}
+        title={confirmModalConfig?.title || ''}
+        description={confirmModalConfig?.description || ''}
+        warningText={confirmModalConfig?.warningText}
+        confirmText={confirmModalConfig?.confirmText}
+        cancelText={confirmModalConfig?.cancelText}
+        type={confirmModalConfig?.type}
+      />
     </div>
   );
 }

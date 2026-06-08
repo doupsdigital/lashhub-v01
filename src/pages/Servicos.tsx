@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { CategoriaServico, Servico, VariacaoServico } from '../types';
 import { registrarLog } from '../utils/log';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 // Extend types to include relations
 interface VariacaoInput {
@@ -60,6 +61,20 @@ export default function Servicos() {
 
   // Tooltip / Notification state for delete locks
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Confirm Modal States
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    title: string;
+    description: string;
+    warningText?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const openConfirmModal = (config: typeof confirmModalConfig) => {
+    setConfirmModalConfig(config);
+    setConfirmModalOpen(true);
+  };
 
   // Fetch all categories with services and their variations
   const fetchData = async () => {
@@ -185,21 +200,26 @@ export default function Servicos() {
       return;
     }
 
-    if (!confirm(`Tem certeza que deseja excluir permanentemente a categoria "${cat.nome}"?`)) return;
+    openConfirmModal({
+      title: 'Excluir Categoria?',
+      description: `Tem certeza que deseja excluir a categoria "${cat.nome}"?`,
+      warningText: 'Esta ação é permanente e não pode ser desfeita.',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('categorias_servico')
+            .delete()
+            .eq('id', cat.id);
 
-    try {
-      const { error } = await supabase
-        .from('categorias_servico')
-        .delete()
-        .eq('id', cat.id);
-
-      if (error) throw error;
-      await registrarLog('excluiu', 'categoria', cat.id, `Excluiu categoria de serviço "${cat.nome}"`);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      showTemporaryError('Falha ao excluir categoria.');
-    }
+          if (error) throw error;
+          await registrarLog('excluiu', 'categoria', cat.id, `Excluiu categoria de serviço "${cat.nome}"`);
+          fetchData();
+        } catch (err) {
+          console.error(err);
+          showTemporaryError('Falha ao excluir categoria.');
+        }
+      }
+    });
   };
 
   // SERVICO ACTIONS
@@ -368,17 +388,27 @@ export default function Servicos() {
         return;
       }
 
-      if (!confirm(`Tem certeza que deseja excluir permanentemente o serviço "${serv.nome}"?`)) return;
+      openConfirmModal({
+        title: 'Excluir Serviço?',
+        description: `Tem certeza que deseja excluir o serviço "${serv.nome}"?`,
+        warningText: 'Esta ação é permanente e não pode ser desfeita.',
+        onConfirm: async () => {
+          try {
+            const { error: delError } = await supabase
+              .from('servicos')
+              .delete()
+              .eq('id', serv.id);
 
-      const { error: delError } = await supabase
-        .from('servicos')
-        .delete()
-        .eq('id', serv.id);
+            if (delError) throw delError;
 
-      if (delError) throw delError;
-
-      await registrarLog('excluiu', 'servico', serv.id, `Excluiu serviço "${serv.nome}"`);
-      fetchData();
+            await registrarLog('excluiu', 'servico', serv.id, `Excluiu serviço "${serv.nome}"`);
+            fetchData();
+          } catch (err) {
+            console.error(err);
+            showTemporaryError('Falha ao excluir o serviço.');
+          }
+        }
+      });
     } catch (err) {
       console.error(err);
       showTemporaryError('Falha ao verificar atendimentos vinculados ou excluir.');
@@ -848,6 +878,16 @@ export default function Servicos() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={confirmModalConfig?.onConfirm || (() => {})}
+        title={confirmModalConfig?.title || ''}
+        description={confirmModalConfig?.description || ''}
+        warningText={confirmModalConfig?.warningText}
+        type="danger"
+      />
     </div>
   );
 }
