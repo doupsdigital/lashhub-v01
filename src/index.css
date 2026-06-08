@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rose-50: #FDF5F5;
+  --rose-100: #FAE8E8;
+  --rose-200: #F5CECE;
+  --rose-400: #D4848A;
+  --rose-600: #A85560;
+  --rose-800: #7A2E38;
+  --gold: #C9A96E;
+  --gold-light: #F0E6D3;
+  --bg: #F7F3EE;          /* fundo geral bege/creme */
+  --surface: #FFFFFF;     /* fundo dos cards */
+  --text-primary: #2C1810;
+  --text-secondary: #7A6A62;
+  --text-muted: #B0A097;
+  --border: rgba(180,150,130,0.18);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
