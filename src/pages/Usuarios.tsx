@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Plus, 
   X, 
   AlertCircle, 
   Sparkles, 
   UserPlus, 
-  Users
+  Users,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import type { Usuario } from '../types';
 import { registrarLog } from '../utils/log';
@@ -24,6 +27,8 @@ export default function Usuarios() {
   // Form states
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('rosae@2025');
+  const [showSenha, setShowSenha] = useState(false);
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -60,23 +65,67 @@ export default function Usuarios() {
   const handleOpenModal = () => {
     setNome('');
     setEmail('');
+    setSenha('rosae@2025');
+    setShowSenha(false);
     setIsModalOpen(true);
   };
 
   const handleSaveUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!nome.trim() || !email.trim()) {
-      showTemporaryError('Nome e E-mail são obrigatórios.');
+    if (!nome.trim() || !email.trim() || !senha.trim()) {
+      showTemporaryError('Todos os campos são obrigatórios.');
+      return;
+    }
+
+    if (senha.trim().length < 6) {
+      showTemporaryError('A senha de acesso deve conter no mínimo 6 caracteres.');
       return;
     }
 
     setSaving(true);
     try {
-      // Insert new user record
+      // 1. Criar o cliente temporário não-persistente do Supabase
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Configuração do Supabase ausente.');
+      }
+
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
+
+      // 2. Registrar o usuário no Supabase Auth com a senha definida
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: senha.trim()
+      });
+
+      if (authError) {
+        if (authError.message.includes('already') || authError.status === 400) {
+          showTemporaryError('Este e-mail já está cadastrado no sistema.');
+          setSaving(false);
+          return;
+        }
+        throw authError;
+      }
+
+      const authUser = authData?.user;
+      if (!authUser) {
+        throw new Error('Falha ao obter o usuário cadastrado no Supabase Auth.');
+      }
+
+      // 3. Inserir o perfil do usuário na tabela de banco de dados 'usuarios' usando o UUID gerado
       const { data, error } = await supabase
         .from('usuarios')
         .insert({
+          id: authUser.id,
           nome: nome.trim(),
           email: email.trim().toLowerCase()
         })
@@ -84,7 +133,6 @@ export default function Usuarios() {
         .single();
 
       if (error) {
-        // Handle uniqueness violation in Supabase (23505)
         if (error.code === '23505') {
           showTemporaryError('Este endereço de e-mail já está cadastrado para outro usuário.');
           setSaving(false);
@@ -101,9 +149,9 @@ export default function Usuarios() {
       setIsModalOpen(false);
       showTemporarySuccess('Usuário cadastrado com sucesso!');
       fetchUsuarios();
-    } catch (err) {
-      console.error(err);
-      showTemporaryError('Falha ao cadastrar novo usuário.');
+    } catch (err: any) {
+      console.error('Erro no cadastro de usuário:', err);
+      showTemporaryError(err.message || 'Falha ao cadastrar novo usuário.');
     } finally {
       setSaving(false);
     }
@@ -241,6 +289,33 @@ export default function Usuarios() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
                 />
+              </div>
+
+              {/* Password field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block">
+                  Senha de Acesso <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input 
+                    type={showSenha ? 'text' : 'password'} 
+                    required
+                    placeholder="No mínimo 6 caracteres"
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSenha(!showSenha)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-rose-600 cursor-pointer"
+                  >
+                    {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-text-secondary mt-1">
+                  Valor padrão: <code className="bg-rose-50 px-1 py-0.5 rounded text-rose-700 font-mono font-semibold">rosae@2025</code>. Pode ser editada.
+                </p>
               </div>
 
               {/* Modal Buttons */}

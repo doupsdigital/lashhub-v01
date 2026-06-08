@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutGrid, 
   Users, 
@@ -9,8 +9,10 @@ import {
   Settings, 
   List, 
   ChevronLeft, 
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -20,6 +22,23 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }: SidebarProps) {
+  const navigate = useNavigate();
+  const { profile, user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
+  };
+
+  const userEmail = profile?.email || user?.email || '';
+  const userName = profile?.nome || 'Usuário';
+  const initials = userName
+    .split(' ')
+    .map((n) => n[0] || '')
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   // Persistence of sidebar state
   useEffect(() => {
     localStorage.setItem('rosae-sidebar-collapsed', JSON.stringify(collapsed));
@@ -134,18 +153,38 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         </div>
 
         {/* Footer: Logged in User Card */}
-        <div className="p-3 border-t border-border bg-rose-50/30">
-          <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="w-9 h-9 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center font-semibold text-sm flex-shrink-0">
-              AD
+        <div className="p-3 border-t border-border bg-rose-50/30 flex flex-col gap-2">
+          <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                {initials}
+              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-text-primary truncate">{userName}</p>
+                  <p className="text-[10px] text-text-secondary truncate">{userEmail}</p>
+                </div>
+              )}
             </div>
             {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-text-primary truncate">Administradora</p>
-                <p className="text-[10px] text-text-secondary truncate">rosae@clinic.com</p>
-              </div>
+              <button
+                onClick={handleSignOut}
+                title="Sair do sistema"
+                className="p-1.5 text-text-secondary hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             )}
           </div>
+          {collapsed && (
+            <button
+              onClick={handleSignOut}
+              title="Sair do sistema"
+              className="mx-auto p-1.5 text-text-secondary hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </aside>
     </>

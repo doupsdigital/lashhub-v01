@@ -1,5 +1,11 @@
 import { supabase } from '../lib/supabase';
 
+let currentUsuarioNome = 'Usuário do Sistema';
+
+export const setCurrentUsuarioNome = (nome: string) => {
+  currentUsuarioNome = nome;
+};
+
 export const registrarLog = async (
   acao: 'criou' | 'editou' | 'excluiu',
   entidade: string,
@@ -8,7 +14,7 @@ export const registrarLog = async (
 ) => {
   try {
     await supabase.from('logs').insert({
-      usuario_nome: 'Usuário do Sistema',
+      usuario_nome: currentUsuarioNome,
       acao,
       entidade,
       entidade_id: entidadeId,
@@ -18,3 +24,4 @@ export const registrarLog = async (
     console.error('Erro ao registrar log de atividade:', err);
   }
 };
+
