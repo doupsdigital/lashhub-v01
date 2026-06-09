@@ -3,22 +3,26 @@ export interface Usuario {
   nome: string;
   email: string;
   avatar_url?: string | null;
+  role: 'profissional' | 'cliente';
+  cliente_id?: string | null;
   created_at?: string;
 }
 
 export interface CategoriaServico {
   id: string;
   nome: string;
-  ativo: boolean;
+  descricao?: string | null;
+  ordem: number;
   created_at?: string;
 }
 
 export interface Servico {
   id: string;
-  categoria_id: string;
+  categoria_id?: string | null;
   nome: string;
+  descricao?: string | null;
   duracao_minutos: number;
-  valor_padrao: number;
+  valor: number;
   ativo: boolean;
   created_at?: string;
   categoria?: CategoriaServico;
@@ -28,58 +32,54 @@ export interface VariacaoServico {
   id: string;
   servico_id: string;
   nome: string;
-  valor: number;
+  duracao_minutos?: number | null;
+  valor?: number | null;
   created_at?: string;
 }
 
-export interface Profissional {
+export interface HorarioAtendimento {
   id: string;
-  nome: string;
-  sobrenome: string;
-  ativo: boolean;
-  created_at?: string;
-}
-
-export interface HorarioProfissional {
-  id: string;
-  profissional_id: string;
   dia_semana: number; // 0=Domingo, 1=Segunda...
   hora_inicio: string; // "HH:MM"
   hora_fim: string; // "HH:MM"
+  created_at?: string;
+}
+
+export interface BloqueioAgenda {
+  id: string;
+  data_inicio: string;
+  data_fim: string;
+  motivo?: string | null;
+  created_at?: string;
 }
 
 export interface Cliente {
   id: string;
   nome: string;
-  sobrenome: string;
-  whatsapp: string;
+  sobrenome?: string | null;
   email?: string | null;
+  whatsapp?: string | null;
   data_nascimento?: string | null;
   cpf?: string | null;
   endereco?: string | null;
-  como_conheceu?: string | null;
-  alergias?: string | null;
-  tipo_pele?: string | null;
-  restricoes?: string | null;
-  medicamentos?: string | null;
-  gestante: boolean;
-  doencas_cronicas?: string | null;
   observacoes?: string | null;
-  ativo: boolean;
+  alergias?: string | null;
+  medicamentos?: string | null;
+  doencas_cronicas?: string | null;
+  gestante: boolean;
   created_at?: string;
 }
 
 export interface Agendamento {
   id: string;
   cliente_id: string;
-  profissional_id: string;
   data_hora: string;
   duracao_minutos: number;
-  status: 'confirmado' | 'cancelado' | 'concluido';
+  status: 'pendente' | 'confirmado' | 'cancelado' | 'concluido';
+  origem: 'admin' | 'portal';
   observacoes?: string | null;
   created_at?: string;
   cliente?: Cliente;
-  profissional?: Profissional;
 }
 
 export interface AgendamentoServico {
@@ -87,7 +87,7 @@ export interface AgendamentoServico {
   agendamento_id: string;
   servico_id: string;
   variacao_id?: string | null;
-  valor_cobrado: number;
+  valor_cobrado?: number | null;
   servico?: Servico;
   variacao?: VariacaoServico;
 }
@@ -95,7 +95,6 @@ export interface AgendamentoServico {
 export interface Atendimento {
   id: string;
   cliente_id: string;
-  profissional_id: string;
   servico_id: string;
   variacao_id?: string | null;
   data_atendimento: string;
@@ -103,18 +102,27 @@ export interface Atendimento {
   observacoes?: string | null;
   created_at?: string;
   cliente?: Cliente;
-  profissional?: Profissional;
   servico?: Servico;
   variacao?: VariacaoServico;
+}
+
+export interface ConfiguracaoNegocio {
+  id: string;
+  nome_negocio: string;
+  descricao?: string | null;
+  instagram?: string | null;
+  endereco?: string | null;
+  logo_url?: string | null;
+  aprovacao_automatica: boolean;
+  antecedencia_cancelamento_horas: number;
+  mensagem_pos_agendamento: string;
+  created_at?: string;
 }
 
 export interface Log {
   id: string;
   usuario_id?: string | null;
-  usuario_nome: string;
-  acao: 'criou' | 'editou' | 'excluiu';
-  entidade: string;
-  entidade_id?: string | null;
-  descricao: string;
+  acao: string;
+  detalhes?: Record<string, unknown> | null;
   created_at?: string;
 }
