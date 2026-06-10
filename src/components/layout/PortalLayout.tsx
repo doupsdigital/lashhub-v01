@@ -5,10 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 const navItems = [
-  { name: 'Catálogo', path: '/portal/catalogo', icon: BookOpen },
-  { name: 'Agendar', path: '/portal/agendar', icon: Calendar },
-  { name: 'Meus Agendamentos', path: '/portal/meus-agendamentos', icon: ClipboardList },
-  { name: 'Meu Perfil', path: '/portal/perfil', icon: User },
+  { name: 'Catálogo', shortName: 'Catálogo', path: '/portal/catalogo', icon: BookOpen },
+  { name: 'Agendar', shortName: 'Agendar', path: '/portal/agendar', icon: Calendar },
+  { name: 'Meus Agendamentos', shortName: 'Agendamentos', path: '/portal/meus-agendamentos', icon: ClipboardList },
+  { name: 'Meu Perfil', shortName: 'Perfil', path: '/portal/perfil', icon: User },
 ];
 
 export default function PortalLayout() {
@@ -126,7 +126,7 @@ export default function PortalLayout() {
               }
             >
               <Icon className="w-5 h-5" />
-              <span>{item.name.split(' ')[0]}</span>
+              <span>{item.shortName}</span>
             </NavLink>
           );
         })}
