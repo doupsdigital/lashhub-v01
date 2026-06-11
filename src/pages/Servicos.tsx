@@ -671,8 +671,8 @@ export default function Servicos() {
       {/* SERVICO MODAL */}
       {isServicoModalOpen && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-lg overflow-hidden my-8 animate-slide-up">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10">
+          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden my-8 animate-slide-up">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10 flex-shrink-0">
               <h4 className="font-title font-semibold text-lg text-text-primary">
                 {editingServico ? 'Editar Serviço' : 'Novo Serviço'}
               </h4>
@@ -684,7 +684,7 @@ export default function Servicos() {
               </button>
             </div>
             
-            <form onSubmit={handleSaveServico} className="p-6 space-y-5">
+            <form onSubmit={handleSaveServico} className="p-6 space-y-5 overflow-y-auto flex-1">
               {/* Nome */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">

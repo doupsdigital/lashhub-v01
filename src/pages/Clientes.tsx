@@ -468,8 +468,8 @@ export default function Clientes() {
       {/* CREATE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-lg overflow-hidden my-8 animate-slide-up">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10">
+          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden my-8 animate-slide-up">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10 flex-shrink-0">
               <h4 className="font-title font-semibold text-lg text-text-primary flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-rose-600" />
                 Cadastrar Novo Cliente
@@ -482,7 +482,7 @@ export default function Clientes() {
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-5">
+            <form onSubmit={handleSave} className="p-6 space-y-5 overflow-y-auto flex-1">
               {/* Mandatory Fields */}
               <div className="space-y-4">
                 <p className="text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border pb-1">Dados Obrigatórios</p>

@@ -1038,10 +1038,10 @@ export default function Agendamentos() {
       {/* DETAIL MODAL / PANEL */}
       {isDetailOpen && selectedAppt && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-md overflow-hidden animate-slide-up">
+          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-md flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden animate-slide-up">
             
             {/* Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10 flex-shrink-0">
               <h4 className="font-title font-semibold text-lg text-text-primary">
                 Detalhes do Agendamento
               </h4>
@@ -1054,7 +1054,7 @@ export default function Agendamentos() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
               
               {/* Client Info (Link to Profile) */}
               <div className="bg-rose-50/20 border border-border/80 rounded-xl p-3.5 flex items-center justify-between">
@@ -1222,9 +1222,9 @@ export default function Agendamentos() {
         const clientName = concludeAppt.cliente ? `${concludeAppt.cliente.nome} ${concludeAppt.cliente.sobrenome}` : 'Cliente';
         return (
           <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-[60] flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-            <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-md overflow-hidden animate-slide-up">
+            <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-md flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden animate-slide-up">
               {/* Header */}
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-green-50/30">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-green-50/30 flex-shrink-0">
                 <h4 className="font-title font-semibold text-lg text-text-primary flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600" />
                   Concluir Atendimento
@@ -1237,7 +1237,7 @@ export default function Agendamentos() {
                 </button>
               </div>
 
-              <div className="p-6 space-y-5">
+              <div className="p-6 space-y-5 overflow-y-auto flex-1">
                 {/* Client */}
                 <div className="text-sm text-text-primary">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary block mb-0.5">Cliente</span>
@@ -1349,10 +1349,10 @@ export default function Agendamentos() {
       {/* FORM MODAL (CREATE OR EDIT) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-lg overflow-hidden my-8 animate-slide-up">
+          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden my-8 animate-slide-up">
             
             {/* Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-rose-50/10 flex-shrink-0">
               <h4 className="font-title font-semibold text-lg text-text-primary flex items-center gap-2">
                 <CalendarDays className="w-5 h-5 text-rose-600" />
                 {editingAppt ? 'Editar Agendamento' : 'Agendar Novo Procedimento'}
@@ -1365,7 +1365,7 @@ export default function Agendamentos() {
               </button>
             </div>
             
-            <form onSubmit={handleSaveAppointment} className="p-6 space-y-5">
+            <form onSubmit={handleSaveAppointment} className="p-6 space-y-5 overflow-y-auto flex-1">
               
               {/* Cliente Autocomplete Search */}
               <div className="space-y-1.5 relative">
