@@ -16,6 +16,7 @@ import { registrarLog } from '../utils/log';
 
 interface ClienteWithAttendances extends Cliente {
   atendimentos?: { data_atendimento: string }[];
+  agendamentos?: { data_hora: string; status: string }[];
 }
 
 export default function Clientes() {
@@ -56,7 +57,7 @@ export default function Clientes() {
       const [clientesRes, usuariosRes] = await Promise.all([
         supabase
           .from('clientes')
-          .select('*, atendimentos(data_atendimento)')
+          .select('*, atendimentos(data_atendimento), agendamentos(data_hora, status)')
           .order('nome', { ascending: true }),
         supabase
           .from('usuarios')
@@ -205,10 +206,26 @@ export default function Clientes() {
 
   // Helper to determine last attendance date
   const getLastAttendanceDate = (client: ClienteWithAttendances) => {
-    if (!client.atendimentos || client.atendimentos.length === 0) {
+    const dates: number[] = [];
+    
+    if (client.atendimentos && client.atendimentos.length > 0) {
+      client.atendimentos.forEach(a => {
+        dates.push(new Date(a.data_atendimento + 'T12:00:00').getTime());
+      });
+    }
+    
+    if (client.agendamentos && client.agendamentos.length > 0) {
+      client.agendamentos.forEach(a => {
+        if (a.status === 'concluido') {
+          dates.push(new Date(a.data_hora).getTime());
+        }
+      });
+    }
+
+    if (dates.length === 0) {
       return 'Nenhum';
     }
-    const dates = client.atendimentos.map(a => new Date(a.data_atendimento).getTime());
+
     const maxDate = new Date(Math.max(...dates));
     return maxDate.toLocaleDateString('pt-BR');
   };

@@ -17,9 +17,14 @@ import {
 import type { Cliente, Atendimento, Servico, VariacaoServico } from '../types';
 import { registrarLog } from '../utils/log';
 
-interface AtendimentoWithRelations extends Atendimento {
-  servicos?: { nome: string };
-  variacoes_servico?: { nome: string };
+interface AtendimentoWithRelations {
+  id: string;
+  data: string; // YYYY-MM-DD
+  valor_cobrado: number;
+  observacoes: string | null;
+  servico_name: string;
+  variacao_name?: string | null;
+  tipo: 'manual' | 'agendamento';
 }
 
 interface ServicoWithVariations extends Servico {
@@ -114,15 +119,61 @@ export default function PerfilCliente() {
       setDoencasCronicas(clientData.doencas_cronicas || '');
       setObservacoes(clientData.observacoes || '');
 
-      // 2. Fetch history
-      const { data: histData, error: histError } = await supabase
-        .from('atendimentos')
-        .select('*, servicos(nome), variacoes_servico(nome)')
-        .eq('cliente_id', id)
-        .order('data_atendimento', { ascending: false });
+      // 2. Fetch history (combine manual records and concluded appointments)
+      const [histRes, concludedRes] = await Promise.all([
+        supabase
+          .from('atendimentos')
+          .select('*, servicos(nome), variacoes_servico(nome)')
+          .eq('cliente_id', id),
+        supabase
+          .from('agendamentos')
+          .select(`
+            id, data_hora, status, valor_cobrado, observacoes,
+            agendamento_servicos (
+              servico:servicos(nome),
+              variacao:variacoes_servico(nome)
+            )
+          `)
+          .eq('cliente_id', id)
+          .eq('status', 'concluido')
+      ]);
 
-      if (histError) throw histError;
-      setAtendimentos(histData || []);
+      if (histRes.error) throw histRes.error;
+      if (concludedRes.error) throw concludedRes.error;
+
+      const manualItems = (histRes.data || []).map((a: any) => ({
+        id: a.id,
+        data: a.data_atendimento,
+        valor_cobrado: Number(a.valor_cobrado || 0),
+        observacoes: a.observacoes,
+        servico_name: a.servicos?.nome || 'Serviço Personalizado',
+        variacao_name: a.variacoes_servico?.nome || null,
+        tipo: 'manual' as const
+      }));
+
+      const apptItems = (concludedRes.data || []).map((a: any) => {
+        const servicesList = (a.agendamento_servicos || []).map((as: any) => {
+          const sName = as.servico?.nome || 'Serviço';
+          const vName = as.variacao?.nome;
+          return vName ? `${sName} (${vName})` : sName;
+        });
+        
+        return {
+          id: a.id,
+          data: a.data_hora.split('T')[0],
+          valor_cobrado: Number(a.valor_cobrado || 0),
+          observacoes: a.observacoes,
+          servico_name: servicesList.join(', ') || 'Nenhum serviço',
+          variacao_name: null,
+          tipo: 'agendamento' as const
+        };
+      });
+
+      const combined = [...manualItems, ...apptItems].sort((a, b) => {
+        return b.data.localeCompare(a.data);
+      });
+
+      setAtendimentos(combined);
 
       // 3. Fetch active services (with variations)
       const { data: srvData, error: srvError } = await supabase
@@ -732,7 +783,7 @@ export default function PerfilCliente() {
                   /* Timeline List */
                   <div className="relative border-l-2 border-rose-100 ml-3 pl-6 space-y-6 py-2">
                     {atendimentos.map(atend => {
-                      const dateObj = new Date(atend.data_atendimento + 'T12:00:00'); // Prevent timezone offset
+                      const dateObj = new Date(atend.data + 'T12:00:00'); // Prevent timezone offset
                       const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
                       
                       return (
@@ -745,6 +796,11 @@ export default function PerfilCliente() {
                               <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-rose-400" />
                                 {formattedDate}
+                                {atend.tipo === 'agendamento' ? (
+                                  <span className="ml-2 bg-rose-50 border border-rose-100 text-rose-700 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase">Agendado</span>
+                                ) : (
+                                  <span className="ml-2 bg-gray-50 border border-gray-150 text-gray-500 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase">Manual</span>
+                                )}
                               </span>
                               <span className="text-sm font-bold text-rose-800 bg-rose-50 border border-rose-100 px-2.5 py-0.5 rounded-full">
                                 R$ {Number(atend.valor_cobrado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -752,10 +808,10 @@ export default function PerfilCliente() {
                             </div>
 
                             <h4 className="text-sm font-bold text-text-primary flex items-center gap-1.5">
-                              {atend.servicos?.nome}
-                              {atend.variacoes_servico?.nome && (
+                              {atend.servico_name}
+                              {atend.variacao_name && (
                                 <span className="text-[10px] bg-gold-light/40 text-gold border border-gold-light/60 px-1.5 py-0.5 rounded font-normal font-sans">
-                                  {atend.variacoes_servico.nome}
+                                  {atend.variacao_name}
                                 </span>
                               )}
                             </h4>
