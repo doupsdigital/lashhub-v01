@@ -4,13 +4,18 @@
 -- Execute este script apenas no banco LASHLY-DEMO para fins de showroom.
 -- =========================================================================
 
--- 1. Limpar dados transacionais e clientes anteriores
+-- 1. Limpar dados transacionais e clientes anteriores preservando o usuário profissional
 TRUNCATE TABLE 
   agendamento_servicos, 
   atendimentos, 
-  agendamentos, 
-  clientes 
+  agendamentos 
   CASCADE;
+
+-- Deletar usuários associados a clientes (preservando profissionais/admins)
+DELETE FROM public.usuarios WHERE cliente_id IS NOT NULL;
+
+-- Deletar todos os clientes
+DELETE FROM public.clientes;
 
 -- 2. Configurações da Bruna Lash e Expediente Comercial
 UPDATE public.configuracao_negocio 
