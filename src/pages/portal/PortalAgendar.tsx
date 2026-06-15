@@ -145,7 +145,14 @@ export default function PortalAgendar() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clienteId } = useAuth();
-  const { establishmentId, slug } = usePortal();
+  const { establishmentId, slug, plano, loading: loadingPortal } = usePortal();
+
+  // Redirect to catalog if salon is on basic plan
+  useEffect(() => {
+    if (!loadingPortal && plano === 'basico') {
+      navigate(`/portal/${slug}/catalogo`, { replace: true });
+    }
+  }, [loadingPortal, plano, slug, navigate]);
 
   // Capture the query param only once at mount
   const preSelectedId = useRef(searchParams.get('servico')).current;

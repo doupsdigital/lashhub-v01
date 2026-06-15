@@ -24,6 +24,8 @@ import CadastroCliente from './pages/portal/CadastroCliente';
 import PortalLogin from './pages/portal/PortalLogin';
 import { PortalProvider } from './contexts/PortalContext';
 
+import PlanGuard from './components/common/PlanGuard';
+
 export default function App() {
   useEffect(() => {
     // 1. Aplica o tema salvo localmente de forma imediata (carregamento rápido)
@@ -73,8 +75,13 @@ export default function App() {
             <Route path="clientes" element={<Clientes />} />
             <Route path="clientes/:id" element={<PerfilCliente />} />
             <Route path="servicos" element={<Servicos />} />
-            <Route path="agendamentos" element={<Agendamentos />} />
-            <Route path="meus-horarios" element={<MeusHorarios />} />
+            
+            {/* Recursos Premium/Agendamento protegidos por plano */}
+            <Route element={<PlanGuard requiredFeature="scheduling" />}>
+              <Route path="agendamentos" element={<Agendamentos />} />
+              <Route path="meus-horarios" element={<MeusHorarios />} />
+            </Route>
+
             <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
 

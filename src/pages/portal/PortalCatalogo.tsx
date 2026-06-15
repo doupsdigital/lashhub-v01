@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Tag, Calendar, AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { Clock, Tag, Calendar, AlertCircle, Sparkles, RefreshCw, MessageSquare } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { CategoriaServico, Servico, VariacaoServico } from '../../types';
 import { usePortal } from '../../contexts/PortalContext';
@@ -43,9 +43,68 @@ function SkeletonCard() {
 interface ServicoCardProps {
   servico: ServicoComVariacoes;
   onAgendar: () => void;
+  isBasico: boolean;
+  nomeNegocio: string | null;
 }
 
-function ServicoCard({ servico, onAgendar }: ServicoCardProps) {
+function ServicoCard({ servico, onAgendar, isBasico, nomeNegocio }: ServicoCardProps) {
+  if (isBasico) {
+    const whatsappText = `Olá! Gostaria de agendar o serviço *${servico.nome}* (${formatValor(servico.valor)}) no *${nomeNegocio || 'Estúdio'}*.`;
+    const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(whatsappText)}`;
+    
+    return (
+      <div className="bg-white border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col gap-3">
+        <h3 className="font-title font-semibold text-xl text-text-primary leading-snug">
+          {servico.nome}
+        </h3>
+
+        {servico.descricao && (
+          <p className="text-sm text-text-secondary leading-relaxed">{servico.descricao}</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+            <Clock className="w-4 h-4 text-rose-400" />
+            {formatDuracao(servico.duracao_minutos)}
+          </span>
+          <span className="flex items-center gap-1.5 text-base font-semibold text-text-primary">
+            <Tag className="w-4 h-4 text-gold" />
+            {formatValor(servico.valor)}
+          </span>
+        </div>
+
+        {servico.variacoes.length > 0 && (
+          <div className="border-t border-border pt-3 space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">Opções</p>
+            {servico.variacoes.map(v => (
+              <div key={v.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="text-text-secondary">{v.nome}</span>
+                <div className="flex items-center gap-1.5 text-text-secondary shrink-0">
+                  {v.valor != null && (
+                    <span className="font-medium text-text-primary">{formatValor(v.valor)}</span>
+                  )}
+                  {v.duracao_minutos != null && (
+                    <span className="text-xs text-text-muted">• {formatDuracao(v.duracao_minutos)}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-auto w-full py-2.5 border border-green-600 hover:bg-green-50 text-green-700 rounded-xl text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-2 text-center"
+        >
+          <MessageSquare className="w-4 h-4 animate-pulse" />
+          Solicitar Orçamento
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col gap-3">
       <h3 className="font-title font-semibold text-xl text-text-primary leading-snug">
@@ -99,11 +158,13 @@ function ServicoCard({ servico, onAgendar }: ServicoCardProps) {
 
 export default function PortalCatalogo() {
   const navigate = useNavigate();
-  const { establishmentId, slug } = usePortal();
+  const { establishmentId, slug, plano, nomeNegocio } = usePortal();
   const [categorias, setCategorias] = useState<CategoriaComServicos[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [categoriaAtiva, setCategoriaAtiva] = useState<string>('todas');
+
+  const isBasico = plano === 'basico';
 
   const fetchData = async () => {
     if (!establishmentId) return;
@@ -212,6 +273,32 @@ export default function PortalCatalogo() {
     <div className="space-y-6">
       <h1 className="font-title font-bold text-3xl text-text-primary">Nossos Serviços</h1>
 
+      {/* WhatsApp banner if studio is on basic plan */}
+      {isBasico && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50/30 border border-green-200 rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+          <div className="flex-1 space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+              <MessageSquare className="w-3.5 h-3.5" /> Agendamento via WhatsApp
+            </span>
+            <h3 className="font-title font-semibold text-lg text-text-primary">
+              Agendamentos Diretos
+            </h3>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              Neste estúdio, os agendamentos online são feitos diretamente via WhatsApp. Escolha o serviço abaixo para solicitar ou clique no botão para conversar conosco.
+            </p>
+          </div>
+          <a
+            href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá! Gostaria de agendar um serviço no *${nomeNegocio || 'Estúdio'}*.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-sm shadow-green-100 hover:shadow-md transition-all shrink-0 self-start md:self-auto"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Conversar no WhatsApp
+          </a>
+        </div>
+      )}
+
       {/* Pills de categoria */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         <button
@@ -252,6 +339,8 @@ export default function PortalCatalogo() {
                   key={serv.id}
                   servico={serv}
                   onAgendar={() => navigate(`/portal/${slug}/agendar?servico=${serv.id}`)}
+                  isBasico={isBasico}
+                  nomeNegocio={nomeNegocio}
                 />
               ))}
             </div>
