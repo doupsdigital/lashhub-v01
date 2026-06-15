@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 
 export function useSubscription() {
-  const { profile, plano, statusAssinatura, loading } = useAuth();
+  const { profile, plano, statusAssinatura, trialEndsAt, loading } = useAuth();
 
   const isPremium = plano === 'premium';
   const isBasico = plano === 'basico';
@@ -22,7 +22,12 @@ export function useSubscription() {
 
   const isSubscriptionActive = (): boolean => {
     if (!profile) return false;
-    return statusAssinatura === 'trial' || statusAssinatura === 'ativo';
+    if (statusAssinatura === 'ativo') return true;
+    if (statusAssinatura === 'trial') {
+      if (!trialEndsAt) return true;
+      return new Date(trialEndsAt) > new Date();
+    }
+    return false;
   };
 
   return {
@@ -32,6 +37,7 @@ export function useSubscription() {
     isSubscriptionActive,
     plano,
     status: statusAssinatura,
+    trialEndsAt,
     loading
   };
 }

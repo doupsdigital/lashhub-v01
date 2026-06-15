@@ -25,6 +25,8 @@ import PortalLogin from './pages/portal/PortalLogin';
 import { PortalProvider } from './contexts/PortalContext';
 
 import PlanGuard from './components/common/PlanGuard';
+import BillingGuard from './components/common/BillingGuard';
+import Faturamento from './pages/Faturamento';
 
 export default function App() {
   useEffect(() => {
@@ -71,18 +73,23 @@ export default function App() {
               </ProfissionalRoute>
             }
           >
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="clientes" element={<Clientes />} />
-            <Route path="clientes/:id" element={<PerfilCliente />} />
-            <Route path="servicos" element={<Servicos />} />
-            
-            {/* Recursos Premium/Agendamento protegidos por plano */}
-            <Route element={<PlanGuard requiredFeature="scheduling" />}>
-              <Route path="agendamentos" element={<Agendamentos />} />
-              <Route path="meus-horarios" element={<MeusHorarios />} />
-            </Route>
-
+            {/* Páginas acessíveis independente de faturamento */}
+            <Route path="faturamento" element={<Faturamento />} />
             <Route path="configuracoes" element={<Configuracoes />} />
+
+            {/* Proteção de Faturamento Ativo / Trial Válido */}
+            <Route element={<BillingGuard />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="clientes" element={<Clientes />} />
+              <Route path="clientes/:id" element={<PerfilCliente />} />
+              <Route path="servicos" element={<Servicos />} />
+              
+              {/* Recursos Premium/Agendamento protegidos por plano */}
+              <Route element={<PlanGuard requiredFeature="scheduling" />}>
+                <Route path="agendamentos" element={<Agendamentos />} />
+                <Route path="meus-horarios" element={<MeusHorarios />} />
+              </Route>
+            </Route>
           </Route>
 
           {/* Portal da cliente */}
