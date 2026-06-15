@@ -7,15 +7,15 @@ Use as caixas de seleção `[ ]` para marcar o status de cada teste.
 ---
 
 ## 📅 Histórico de Execução de Testes
-* **Responsável pelo Teste**: [Nome do Testador]
-* **Data da Execução**: [__/__/____]
+* **Responsável pelo Teste**: [Doni]
+* **Data da Execução**: [15/06/2026]
 * **Resultado Geral**: `[ ] Aprovado para Produção` | `[ ] Ajustes Pendentes`
 
 ---
 
 ## 🔗 Massa de Dados Útil para Teste Local
 * **URL do Admin**: `http://localhost:5174/`
-* **Usuário Demo (Bruna Lash)**: `contato@brunalash.com.br` | Senha: `123456`
+* **Usuário Demo (Bruna Lash)**: `admin@lashly.com` | Senha: `admin123`
 * **Portal da Cliente (Demo)**: `http://localhost:5174/portal/brunalash`
 
 ---
@@ -32,8 +32,9 @@ Este fluxo valida a jornada de uma nova profissional se registrando no SaaS.
 * **Resultado Esperado**:
   * O sistema deve realizar o cadastro e redirecionar automaticamente para a página `/dashboard`.
   * Um novo registro de estabelecimento e usuário deve ser inserido corretamente no Supabase.
-* **Status**: `[ ] Aprovado` | `[ ] Reprovado`
-* **Observações**: __________________________________________________
+* **Status**: `[X] Aprovado` | `[ ] Reprovado`
+* **Observações**: 1- ao apertar Tab no primeiro campo de senha esta indo pro olhinho, deve ir pro campo de confirmar senha. `OK - CORRIGIDO.`
+* **Dados de teste**: Usuario: Isadora Ramos. Nome do studio: Isadora Lash.Email: isadoraramos@gmail.com. Senha: isadora123
 
 ### **[ ] T1.2: Atribuição de Trial Premium**
 * **Cenário**: Garantir que novos cadastros comecem no plano completo para teste.
@@ -43,7 +44,7 @@ Este fluxo valida a jornada de uma nova profissional se registrando no SaaS.
 * **Resultado Esperado**:
   * A nova profissional inicia com o plano **Premium (Trial)** liberado por padrão.
   * Todas as páginas e recursos da agenda e portal online devem estar desbloqueados para uso.
-* **Status**: `[ ] Aprovado` | `[ ] Reprovado`
+* **Status**: `[X] Aprovado` | `[ ] Reprovado`
 * **Observações**: __________________________________________________
 
 ### **[ ] T1.3: Exibição do Status do Trial em Faturamento**
@@ -54,7 +55,7 @@ Este fluxo valida a jornada de uma nova profissional se registrando no SaaS.
 * **Resultado Esperado**:
   * O campo de status deve exibir o texto: **"Período de Testes (14 dias restantes)"** em uma badge amarela/laranja.
   * A data de término deve ser calculada exatamente com 14 dias de antecedência a partir da data de criação.
-* **Status**: `[ ] Aprovado` | `[ ] Reprovado`
+* **Status**: `[X] Aprovado` | `[ ] Reprovado`
 * **Observações**: __________________________________________________
 
 ### **[ ] T1.4: Destaque do Plano Premium Atual**
@@ -64,9 +65,8 @@ Este fluxo valida a jornada de uma nova profissional se registrando no SaaS.
 * **Resultado Esperado**:
   * O card do **Plano Premium (Agenda)** deve exibir a badge **"Seu plano de testes atual"** em destaque.
   * Ambos os planos devem apresentar as opções de checkout ("Assinar via Pix" e "Assinar via Cartão") ativas para o usuário poder realizar a assinatura definitiva.
-* **Status**: `[ ] Aprovado` | `[ ] Reprovado`
-* **Observações**: __________________________________________________
-
+* **Status**: `[X] Aprovado` | `[ ] Reprovado`
+* **Observações**: Card do plano Basico no modo DarkMode está ruim de ler (esta com um cinza que impede a leitura. Deixar igual o card Premium. `OK. CORRIGIDO.`
 ---
 
 ## 👥 FLUXO 2: Gestão de Clientes e Ficha de Anamnese (Profissional)
@@ -82,8 +82,8 @@ Valida o cadastro de clientes, histórico de atendimentos e personalização das
 * **Resultado Esperado**:
   * O cliente deve aparecer listado imediatamente na tabela de clientes.
   * Usar a barra de pesquisa rápida digitando o WhatsApp ou nome deve localizar o cliente sem atraso.
-* **Status**: `[ ] Aprovado` | `[ ] Reprovado`
-* **Observações**: __________________________________________________
+* **Status**: `[ ] Aprovado` | `[X] Reprovado`
+* **Observações**: Numero de whatsapp nao esta respeitando a mascara quando o usuario digita. CPF tambem nao respeita a mascara de CPF ao digitar dificultando a usabildiade. Falha ao Salvar cliente, parece que a mensagem aparece atras da tela. `OK - CORRIGIDO`
 
 ### **[ ] T2.2: Edição de Ficha Cadastral**
 * **Cenário**: Alterar dados básicos de um cliente.
@@ -93,8 +93,8 @@ Valida o cadastro de clientes, histórico de atendimentos e personalização das
   3. Altere o WhatsApp e a data de nascimento, depois clique em **Salvar**.
 * **Resultado Esperado**:
   * Os dados do cliente no cabeçalho e perfil devem ser atualizados instantaneamente na interface.
-* **Status**: `[ ] Aprovado` | `[ ] Reprovado`
-* **Observações**: __________________________________________________
+* **Status**: `[X] Aprovado` | `[ ] Reprovado`
+* **Observações**: Campos CPF e Whatsapp nao respeitam a mascara ao digitar e ficam baguncados. Permitindo que o usuario digite qualquer valor. O modal de confirmacao aparece em cima na tela, se a tela estiver minimizada o usuario nem consegue ver. O modela de confirmacao precisa aparecer no meio da tela pra melhorar a usabilidade. `OK  - CORRIGIDO.`__________________________________________________
 
 ### **[ ] T2.3: Ficha de Anamnese Customizada**
 * **Cenário**: Preenchimento e salvamento dos parâmetros da ficha de cílios (lash).
