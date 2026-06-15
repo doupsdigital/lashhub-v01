@@ -57,10 +57,20 @@ export default function Configuracoes() {
   const [paletaCores, setPaletaCores] = useState('rosa_rose');
   const [modoEscuro, setModoEscuro] = useState(false);
   const [loadingNegocio, setLoadingNegocio] = useState(true);
-  const [savingNegocio, setSavingNegocio] = useState(false);
-  const [negocioError, setNegocioError] = useState<string | null>(null);
-  const [negocioSuccess, setNegocioSuccess] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Estados de Salvamento Separados
+  const [savingDados, setSavingDados] = useState(false);
+  const [dadosSuccess, setDadosSuccess] = useState<string | null>(null);
+  const [dadosError, setDadosError] = useState<string | null>(null);
+
+  const [savingVisual, setSavingVisual] = useState(false);
+  const [visualSuccess, setVisualSuccess] = useState<string | null>(null);
+  const [visualError, setVisualError] = useState<string | null>(null);
+
+  const [savingAgendamento, setSavingAgendamento] = useState(false);
+  const [agendamentoSuccess, setAgendamentoSuccess] = useState<string | null>(null);
+  const [agendamentoError, setAgendamentoError] = useState<string | null>(null);
 
   const userName = profile?.nome || 'Usuário';
   const userEmail = profile?.email || user?.email || '';
@@ -90,10 +100,9 @@ export default function Configuracoes() {
         setAntecedenciaHoras(data.antecedencia_cancelamento_horas ?? 24);
         setMensagemPosAgendamento(data.mensagem_pos_agendamento || '');
         setPaletaCores(data.paleta_cores || 'rosa_rose');
+        setModoEscuro(data.modo_escuro ?? false);
       }
       
-      const cachedDarkMode = localStorage.getItem('app_theme_dark_mode') === 'true';
-      setModoEscuro(cachedDarkMode);
       setLoadingNegocio(false);
     }
     loadNegocio();
@@ -233,8 +242,8 @@ export default function Configuracoes() {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
 
-    setNegocioError(null);
-    setNegocioSuccess(null);
+    setDadosError(null);
+    setDadosSuccess(null);
     setUploadingLogo(true);
 
     try {
@@ -253,10 +262,10 @@ export default function Configuracoes() {
       } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
       setLogoUrl(publicUrl);
-      setNegocioSuccess('Logo enviada! Clique em "Salvar Configurações" para confirmar.');
+      setDadosSuccess('Logo enviada! Clique em "Salvar Dados" para confirmar.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao enviar logo.';
-      setNegocioError(msg);
+      setDadosError(msg);
     } finally {
       setUploadingLogo(false);
       if (logoFileInputRef.current) logoFileInputRef.current.value = '';
@@ -265,15 +274,15 @@ export default function Configuracoes() {
 
   const handleRemoveLogo = () => {
     setLogoUrl(null);
-    setNegocioSuccess('Logo removida. Clique em "Salvar Configurações" para confirmar.');
+    setDadosSuccess('Logo removida. Clique em "Salvar Dados" para confirmar.');
   };
 
-  // 6. Salvar Dados do Negócio + Configurações de Agendamento
-  const handleSaveNegocio = async () => {
+  // 6. Salvar Dados do Negócio (Dados do Perfil/Negócio)
+  const handleSaveDadosNegocio = async () => {
     if (!configuracaoId) return;
-    setSavingNegocio(true);
-    setNegocioError(null);
-    setNegocioSuccess(null);
+    setSavingDados(true);
+    setDadosError(null);
+    setDadosSuccess(null);
 
     try {
       const { error } = await supabase
@@ -284,15 +293,11 @@ export default function Configuracoes() {
           instagram: instagramNegocio.trim() || null,
           endereco: enderecoNegocio.trim() || null,
           logo_url: logoUrl,
-          aprovacao_automatica: aprovacaoAutomatica,
-          antecedencia_cancelamento_horas: antecedenciaHoras,
-          mensagem_pos_agendamento: mensagemPosAgendamento.trim(),
-          paleta_cores: paletaCores,
         })
         .eq('id', configuracaoId);
 
       if (error) throw error;
-      setNegocioSuccess('Configurações salvas com sucesso!');
+      setDadosSuccess('Dados do negócio salvos com sucesso!');
       
       // Notificar layouts sobre a atualização do nome e logotipo em tempo real
       window.dispatchEvent(
@@ -304,10 +309,63 @@ export default function Configuracoes() {
         })
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao salvar configurações.';
-      setNegocioError(msg);
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar dados do negócio.';
+      setDadosError(msg);
     } finally {
-      setSavingNegocio(false);
+      setSavingDados(false);
+    }
+  };
+
+  // 7. Salvar Identidade Visual e Cores
+  const handleSaveVisual = async () => {
+    if (!configuracaoId) return;
+    setSavingVisual(true);
+    setVisualError(null);
+    setVisualSuccess(null);
+
+    try {
+      const { error } = await supabase
+        .from('configuracao_negocio')
+        .update({
+          paleta_cores: paletaCores,
+          modo_escuro: modoEscuro,
+        })
+        .eq('id', configuracaoId);
+
+      if (error) throw error;
+      setVisualSuccess('Identidade visual salva com sucesso!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar identidade visual.';
+      setVisualError(msg);
+    } finally {
+      setSavingVisual(false);
+    }
+  };
+
+  // 8. Salvar Configurações de Agendamento
+  const handleSaveAgendamento = async () => {
+    if (!configuracaoId) return;
+    setSavingAgendamento(true);
+    setAgendamentoError(null);
+    setAgendamentoSuccess(null);
+
+    try {
+      const { error } = await supabase
+        .from('configuracao_negocio')
+        .update({
+          aprovacao_automatica: aprovacaoAutomatica,
+          antecedencia_cancelamento_horas: antecedenciaHoras,
+          mensagem_pos_agendamento: mensagemPosAgendamento.trim(),
+        })
+        .eq('id', configuracaoId);
+
+      if (error) throw error;
+      setAgendamentoSuccess('Configurações de agendamento salvas com sucesso!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar configurações de agendamento.';
+      setAgendamentoError(msg);
+    } finally {
+      setSavingAgendamento(false);
     }
   };
 
@@ -693,6 +751,31 @@ export default function Configuracoes() {
                 </div>
               </div>
             </div>
+
+            {/* Feedback e botão de salvar */}
+            {dadosError && (
+              <div className="mt-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <p className="text-xs font-medium">{dadosError}</p>
+              </div>
+            )}
+            {dadosSuccess && (
+              <div className="mt-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <p className="text-xs font-medium">{dadosSuccess}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-6 border-t border-border mt-6">
+              <button
+                type="button"
+                onClick={handleSaveDadosNegocio}
+                disabled={savingDados || loadingNegocio || !configuracaoId}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {savingDados ? 'Salvando...' : 'Salvar Dados'}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -797,6 +880,31 @@ export default function Configuracoes() {
             })}
           </div>
         )}
+
+        {/* Feedback e botão de salvar */}
+        {visualError && (
+          <div className="mt-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <p className="text-xs font-medium">{visualError}</p>
+          </div>
+        )}
+        {visualSuccess && (
+          <div className="mt-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
+            <Sparkles className="w-5 h-5 text-green-600 flex-shrink-0" />
+            <p className="text-xs font-medium">{visualSuccess}</p>
+          </div>
+        )}
+
+        <div className="flex justify-end pt-6 border-t border-border mt-6">
+          <button
+            type="button"
+            onClick={handleSaveVisual}
+            disabled={savingVisual || loadingNegocio || !configuracaoId}
+            className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          >
+            {savingVisual ? 'Salvando...' : 'Salvar Cores'}
+          </button>
+        </div>
       </div>
 
       {/* Section 4: Configurações de Agendamento */}
@@ -879,27 +987,27 @@ export default function Configuracoes() {
         )}
 
         {/* Feedback e botão de salvar */}
-        {negocioError && (
+        {agendamentoError && (
           <div className="mt-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-xs font-medium">{negocioError}</p>
+            <p className="text-xs font-medium">{agendamentoError}</p>
           </div>
         )}
-        {negocioSuccess && (
+        {agendamentoSuccess && (
           <div className="mt-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
             <Sparkles className="w-5 h-5 text-green-600 flex-shrink-0" />
-            <p className="text-xs font-medium">{negocioSuccess}</p>
+            <p className="text-xs font-medium">{agendamentoSuccess}</p>
           </div>
         )}
 
         <div className="flex justify-end pt-6 border-t border-border mt-6">
           <button
             type="button"
-            onClick={handleSaveNegocio}
-            disabled={savingNegocio || loadingNegocio || !configuracaoId}
+            onClick={handleSaveAgendamento}
+            disabled={savingAgendamento || loadingNegocio || !configuracaoId}
             className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
           >
-            {savingNegocio ? 'Salvando...' : 'Salvar Configurações'}
+            {savingAgendamento ? 'Salvando...' : 'Salvar Configurações'}
           </button>
         </div>
       </div>
