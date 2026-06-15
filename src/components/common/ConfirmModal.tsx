@@ -10,6 +10,7 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'warning' | 'success';
+  singleAction?: boolean;
 }
 
 export default function ConfirmModal({
@@ -21,7 +22,8 @@ export default function ConfirmModal({
   warningText,
   confirmText = 'Excluir',
   cancelText = 'Cancelar',
-  type = 'danger'
+  type = 'danger',
+  singleAction = false,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
@@ -99,21 +101,23 @@ export default function ConfirmModal({
         )}
 
         {/* Actions buttons */}
-        <div className="grid grid-cols-2 gap-3 w-full">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-border hover:bg-bg text-text-secondary rounded-lg text-xs font-semibold cursor-pointer transition-colors"
-          >
-            {cancelText}
-          </button>
+        <div className={singleAction ? 'w-full' : 'grid grid-cols-2 gap-3 w-full'}>
+          {!singleAction && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-border hover:bg-bg text-text-secondary rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${getConfirmButtonClass()}`}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors w-full ${getConfirmButtonClass()}`}
           >
             {confirmText}
           </button>

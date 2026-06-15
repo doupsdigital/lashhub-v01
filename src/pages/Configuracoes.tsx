@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { PALETTES_LIST, applyPalette } from '../utils/theme';
+import ConfirmModal from '../components/common/ConfirmModal';
 import {
   Camera,
   Trash2,
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function Configuracoes() {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile, user, refreshProfile, estabelecimentoId } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,7 +66,7 @@ export default function Configuracoes() {
   const [dadosError, setDadosError] = useState<string | null>(null);
 
   const [savingVisual, setSavingVisual] = useState(false);
-  const [visualSuccess, setVisualSuccess] = useState<string | null>(null);
+  const [visualSuccessModalOpen, setVisualSuccessModalOpen] = useState(false);
   const [visualError, setVisualError] = useState<string | null>(null);
 
   const [savingAgendamento, setSavingAgendamento] = useState(false);
@@ -83,10 +84,12 @@ export default function Configuracoes() {
 
   useEffect(() => {
     async function loadNegocio() {
+      if (!estabelecimentoId) return;
       setLoadingNegocio(true);
       const { data, error } = await supabase
         .from('configuracao_negocio')
         .select('*')
+        .eq('estabelecimento_id', estabelecimentoId)
         .maybeSingle();
 
       if (!error && data) {
@@ -106,7 +109,7 @@ export default function Configuracoes() {
       setLoadingNegocio(false);
     }
     loadNegocio();
-  }, []);
+  }, [estabelecimentoId]);
 
   // 1. Atualizar informações de perfil (Nome)
   const handleUpdateProfile = async (e: FormEvent) => {
@@ -321,7 +324,6 @@ export default function Configuracoes() {
     if (!configuracaoId) return;
     setSavingVisual(true);
     setVisualError(null);
-    setVisualSuccess(null);
 
     try {
       const { error } = await supabase
@@ -333,7 +335,7 @@ export default function Configuracoes() {
         .eq('id', configuracaoId);
 
       if (error) throw error;
-      setVisualSuccess('Identidade visual salva com sucesso!');
+      setVisualSuccessModalOpen(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar identidade visual.';
       setVisualError(msg);
@@ -507,7 +509,7 @@ export default function Configuracoes() {
                 <button
                   type="submit"
                   disabled={loadingProfile}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-400 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                 >
                   {loadingProfile ? 'Salvando...' : 'Salvar Perfil'}
                 </button>
@@ -594,7 +596,7 @@ export default function Configuracoes() {
                 <button
                   type="submit"
                   disabled={loadingPassword}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-400 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                 >
                   {loadingPassword ? 'Atualizando...' : 'Atualizar Senha'}
                 </button>
@@ -771,7 +773,7 @@ export default function Configuracoes() {
                 type="button"
                 onClick={handleSaveDadosNegocio}
                 disabled={savingDados || loadingNegocio || !configuracaoId}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-400 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
               >
                 {savingDados ? 'Salvando...' : 'Salvar Dados'}
               </button>
@@ -888,19 +890,13 @@ export default function Configuracoes() {
             <p className="text-xs font-medium">{visualError}</p>
           </div>
         )}
-        {visualSuccess && (
-          <div className="mt-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-green-600 flex-shrink-0" />
-            <p className="text-xs font-medium">{visualSuccess}</p>
-          </div>
-        )}
 
         <div className="flex justify-end pt-6 border-t border-border mt-6">
           <button
             type="button"
             onClick={handleSaveVisual}
             disabled={savingVisual || loadingNegocio || !configuracaoId}
-            className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-400 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
           >
             {savingVisual ? 'Salvando...' : 'Salvar Cores'}
           </button>
@@ -1005,12 +1001,23 @@ export default function Configuracoes() {
             type="button"
             onClick={handleSaveAgendamento}
             disabled={savingAgendamento || loadingNegocio || !configuracaoId}
-            className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-300 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            className="px-5 py-2 bg-rose-600 hover:bg-rose-800 disabled:bg-rose-400 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
           >
             {savingAgendamento ? 'Salvando...' : 'Salvar Configurações'}
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={visualSuccessModalOpen}
+        onClose={() => setVisualSuccessModalOpen(false)}
+        onConfirm={() => setVisualSuccessModalOpen(false)}
+        title="Cores salvas!"
+        description="A identidade visual do seu negócio foi atualizada com sucesso."
+        type="success"
+        confirmText="OK"
+        singleAction
+      />
     </div>
   );
 }
