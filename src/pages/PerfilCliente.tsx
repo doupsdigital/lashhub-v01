@@ -35,6 +35,25 @@ interface ServicoWithVariations extends Servico {
   variacoes_servico?: VariacaoServico[];
 }
 
+function applyPhoneMask(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const limited = digits.substring(0, 11);
+  if (limited.length <= 2) return `(${limited}`;
+  if (limited.length <= 7) return `(${limited.substring(0, 2)}) ${limited.substring(2)}`;
+  return `(${limited.substring(0, 2)}) ${limited.substring(2, 7)}-${limited.substring(7)}`;
+}
+
+function applyCpfMask(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const limited = digits.substring(0, 11);
+  if (limited.length <= 3) return limited;
+  if (limited.length <= 6) return `${limited.substring(0, 3)}.${limited.substring(3)}`;
+  if (limited.length <= 9) return `${limited.substring(0, 3)}.${limited.substring(3, 6)}.${limited.substring(6)}`;
+  return `${limited.substring(0, 3)}.${limited.substring(3, 6)}.${limited.substring(6, 9)}-${limited.substring(9)}`;
+}
+
 export default function PerfilCliente() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<'dados' | 'anamnese' | 'historico'>('dados');
@@ -120,10 +139,10 @@ export default function PerfilCliente() {
       // Load Form states - Personal
       setNome(clientData.nome || '');
       setSobrenome(clientData.sobrenome || '');
-      setWhatsapp(clientData.whatsapp || '');
+      setWhatsapp(applyPhoneMask(clientData.whatsapp || ''));
       setEmail(clientData.email || '');
       setDataNascimento(clientData.data_nascimento || '');
-      setCpf(clientData.cpf || '');
+      setCpf(applyCpfMask(clientData.cpf || ''));
       setEndereco(clientData.endereco || '');
       setComoConheceu(clientData.como_conheceu || '');
 
@@ -449,20 +468,32 @@ export default function PerfilCliente() {
 
   return (
     <div className="space-y-6">
-      {/* Floating Toasts */}
+      {/* Floating Centered Alerts */}
       {errorMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4 pointer-events-none">
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3 shadow-lg animate-fade-in pointer-events-auto">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
-            <p className="text-sm font-medium">{errorMessage}</p>
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 bg-black/20 backdrop-blur-[1px] pointer-events-auto">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl flex items-center gap-3 shadow-2xl animate-scale-in max-w-md">
+            <AlertCircle className="w-6 h-6 flex-shrink-0 text-red-600" />
+            <div>
+              <p className="text-sm font-semibold">Erro</p>
+              <p className="text-xs mt-0.5 leading-relaxed">{errorMessage}</p>
+            </div>
+            <button onClick={() => setErrorMessage(null)} className="ml-auto text-red-600 hover:text-red-800 cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
       {successMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4 pointer-events-none">
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-3 shadow-lg animate-fade-in pointer-events-auto">
-            <Sparkles className="w-5 h-5 flex-shrink-0 text-green-600" />
-            <p className="text-sm font-medium">{successMessage}</p>
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 bg-black/20 backdrop-blur-[1px] pointer-events-auto">
+          <div className="bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl flex items-center gap-3 shadow-2xl animate-scale-in max-w-md">
+            <Sparkles className="w-6 h-6 flex-shrink-0 text-green-600" />
+            <div>
+              <p className="text-sm font-semibold">Sucesso</p>
+              <p className="text-xs mt-0.5 leading-relaxed">{successMessage}</p>
+            </div>
+            <button onClick={() => setSuccessMessage(null)} className="ml-auto text-green-600 hover:text-green-800 cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
@@ -618,7 +649,7 @@ export default function PerfilCliente() {
                       type="text" 
                       required
                       value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => setWhatsapp(applyPhoneMask(e.target.value))}
                       className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400"
                     />
                   </div>
@@ -651,7 +682,7 @@ export default function PerfilCliente() {
                       type="text" 
                       placeholder="000.000.000-00"
                       value={cpf}
-                      onChange={(e) => setCpf(e.target.value)}
+                      onChange={(e) => setCpf(applyCpfMask(e.target.value))}
                       className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400"
                     />
                   </div>

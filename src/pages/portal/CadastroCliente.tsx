@@ -5,10 +5,12 @@ import { supabase } from '../../lib/supabase';
 import { usePortal } from '../../contexts/PortalContext';
 
 function applyPhoneMask(value: string): string {
-  const digits = value.replace(/\D/g, '').substring(0, 11);
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 7) return `(${digits.substring(0, 2)}) ${digits.substring(2)}`;
-  return `(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7)}`;
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const limited = digits.substring(0, 11);
+  if (limited.length <= 2) return `(${limited}`;
+  if (limited.length <= 7) return `(${limited.substring(0, 2)}) ${limited.substring(2)}`;
+  return `(${limited.substring(0, 2)}) ${limited.substring(2, 7)}-${limited.substring(7)}`;
 }
 
 export default function CadastroCliente() {
