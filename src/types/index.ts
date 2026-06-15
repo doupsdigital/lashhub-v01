@@ -57,6 +57,7 @@ export interface BloqueioAgenda {
 
 export interface Cliente {
   id: string;
+  estabelecimento_id?: string;
   nome: string;
   sobrenome?: string | null;
   email?: string | null;

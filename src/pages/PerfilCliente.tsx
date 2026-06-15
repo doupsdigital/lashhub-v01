@@ -401,6 +401,7 @@ export default function PerfilCliente() {
       const selectedService = servicos.find(s => s.id === atendimentoServicoId);
       
       const payload = {
+        estabelecimento_id: cliente.estabelecimento_id,
         cliente_id: cliente.id,
         servico_id: atendimentoServicoId,
         variacao_id: atendimentoVariacaoId || null,
