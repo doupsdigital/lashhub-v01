@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const { user, isProfissional, loading: authLoading, signIn } = useAuth();
+  const { user, isProfissional, estabelecimentoSlug, loading: authLoading, signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,7 +18,13 @@ export default function Login() {
 
   // Redireciona usuário já autenticado
   if (!authLoading && user) {
-    return <Navigate to={isProfissional ? '/dashboard' : '/portal'} replace />;
+    if (isProfissional) {
+      return <Navigate to="/dashboard" replace />;
+    } else if (estabelecimentoSlug) {
+      return <Navigate to={`/portal/${estabelecimentoSlug}/catalogo`} replace />;
+    } else {
+      return <Navigate to="/login" replace />;
+    }
   }
 
   const handleLogin = async (e: React.FormEvent) => {

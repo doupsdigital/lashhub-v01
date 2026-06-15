@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function ProfissionalRoute({ children }: { children: React.ReactNode }) {
-  const { user, isProfissional, loading } = useAuth();
+  const { user, isProfissional, estabelecimentoSlug, loading } = useAuth();
 
   if (loading) {
     return (
@@ -22,7 +22,12 @@ export default function ProfissionalRoute({ children }: { children: React.ReactN
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (!isProfissional) return <Navigate to="/portal" replace />;
+  if (!isProfissional) {
+    if (estabelecimentoSlug) {
+      return <Navigate to={`/portal/${estabelecimentoSlug}/catalogo`} replace />;
+    }
+    return <Navigate to="/login" replace />;
+  }
 
   return <>{children}</>;
 }

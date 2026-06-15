@@ -14,6 +14,7 @@ interface AuthContextType {
   estabelecimentoId: string | null;
   plano: string | null;
   statusAssinatura: string | null;
+  estabelecimentoSlug: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [estabelecimentoId, setEstabelecimentoId] = useState<string | null>(null);
   const [plano, setPlano] = useState<string | null>(null);
   const [statusAssinatura, setStatusAssinatura] = useState<string | null>(null);
+  const [estabelecimentoSlug, setEstabelecimentoSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setEstabelecimentoId(null);
         setPlano(null);
+        setEstabelecimentoSlug(null);
         setLoading(false);
         return;
       }
@@ -46,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data } = await supabase
         .from('usuarios')
-        .select('*, estabelecimentos(plano, status_assinatura)')
+        .select('*, estabelecimentos(plano, status_assinatura, slug)')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -61,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setEstabelecimentoId(profileData.estabelecimento_id ?? null);
       setPlano(profileData.estabelecimentos?.plano ?? 'basico');
       setStatusAssinatura(profileData.estabelecimentos?.status_assinatura ?? 'trial');
+      setEstabelecimentoSlug(profileData.estabelecimentos?.slug ?? null);
       setLoading(false);
     });
 
@@ -83,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const { data } = await supabase
       .from('usuarios')
-      .select('*, estabelecimentos(plano, status_assinatura)')
+      .select('*, estabelecimentos(plano, status_assinatura, slug)')
       .eq('id', user.id)
       .maybeSingle();
     
@@ -93,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setEstabelecimentoId(profileData.estabelecimento_id ?? null);
       setPlano(profileData.estabelecimentos?.plano ?? 'basico');
       setStatusAssinatura(profileData.estabelecimentos?.status_assinatura ?? 'trial');
+      setEstabelecimentoSlug(profileData.estabelecimentos?.slug ?? null);
     }
   };
 
@@ -112,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       estabelecimentoId={estabelecimentoId}
       plano={plano}
       statusAssinatura={statusAssinatura}
+      estabelecimentoSlug={estabelecimentoSlug}
       loading={loading}
       signIn={signIn}
       signOut={signOut}
@@ -134,6 +140,7 @@ function AuthProviderHelper({
   estabelecimentoId,
   plano,
   statusAssinatura,
+  estabelecimentoSlug,
   loading,
   signIn,
   signOut,
@@ -149,6 +156,7 @@ function AuthProviderHelper({
   estabelecimentoId: string | null;
   plano: string | null;
   statusAssinatura: string | null;
+  estabelecimentoSlug: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -157,7 +165,7 @@ function AuthProviderHelper({
   return (
     <AuthContext.Provider value={{
       user, profile, role, isProfissional, isCliente, clienteId,
-      estabelecimentoId, plano, statusAssinatura,
+      estabelecimentoId, plano, statusAssinatura, estabelecimentoSlug,
       loading, signIn, signOut, refreshProfile,
     }}>
       {children}
