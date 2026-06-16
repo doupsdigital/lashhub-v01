@@ -35,18 +35,35 @@ export default function App() {
     const cachedDarkMode = localStorage.getItem('app_theme_dark_mode') === 'true';
     applyPalette(cachedPalette, cachedDarkMode);
 
-    // 2. Consulta o banco para manter o tema atualizado
+    // 2. Consulta o banco para manter o tema atualizado de forma isolada por tenant
     async function fetchTheme() {
       try {
-        const { data, error } = await supabase
-          .from('configuracao_negocio')
-          .select('paleta_cores')
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return;
+
+        // Buscar estabelecimento_id do usuário logado
+        const { data: profile } = await supabase
+          .from('usuarios')
+          .select('estabelecimento_id')
+          .eq('id', session.user.id)
           .maybeSingle();
-        
-        if (!error && data) {
-          const dbPalette = data.paleta_cores || 'rosa_rose';
-          const cachedDarkMode = localStorage.getItem('app_theme_dark_mode') === 'true';
-          applyPalette(dbPalette, cachedDarkMode);
+
+        if (profile?.estabelecimento_id) {
+          const { data, error } = await supabase
+            .from('configuracao_negocio')
+            .select('paleta_cores, modo_escuro')
+            .eq('estabelecimento_id', profile.estabelecimento_id)
+            .maybeSingle();
+          
+          if (!error && data) {
+            const dbPalette = data.paleta_cores || 'rosa_rose';
+            const dbDarkMode = data.modo_escuro ?? false;
+            applyPalette(dbPalette, dbDarkMode);
+            
+            // Sincronizar cache local para a próxima inicialização rápida
+            localStorage.setItem('app_theme_palette', dbPalette);
+            localStorage.setItem('app_theme_dark_mode', String(dbDarkMode));
+          }
         }
       } catch (err) {
         console.error('Erro ao sincronizar tema:', err);

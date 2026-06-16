@@ -29,7 +29,7 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }: SidebarProps) {
   const navigate = useNavigate();
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, estabelecimentoId } = useAuth();
   const [businessName, setBusinessName] = useState<string>('...');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   
@@ -37,17 +37,24 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   useEffect(() => {
+    if (!estabelecimentoId) return;
+
     supabase
       .from('configuracao_negocio')
       .select('nome_negocio, logo_url')
+      .eq('estabelecimento_id', estabelecimentoId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Erro ao carregar configuracoes da sidebar:', error);
+          return;
+        }
         if (data) {
           setBusinessName(data.nome_negocio || 'Studio');
           setLogoUrl(data.logo_url || null);
         }
       });
-  }, []);
+  }, [estabelecimentoId]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
