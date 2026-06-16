@@ -23,7 +23,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 interface VariacaoInput {
   id?: string;
   nome: string;
-  valor: number;
+  valor: number | '';
 }
 
 interface ServicoWithRelations extends Servico {
@@ -57,8 +57,8 @@ export default function Servicos() {
   // Form states - Servico
   const [servicoNome, setServicoNome] = useState('');
   const [servicoCategoriaId, setServicoCategoriaId] = useState('');
-  const [servicoDuracao, setServicoDuracao] = useState(30);
-  const [servicoValor, setServicoValor] = useState(100.0);
+  const [servicoDuracao, setServicoDuracao] = useState<number | ''>(30);
+  const [servicoValor, setServicoValor] = useState<number | ''>(100.0);
   const [servicoVariacoes, setServicoVariacoes] = useState<VariacaoInput[]>([]);
 
   // Tooltip / Notification state for delete locks
@@ -77,6 +77,16 @@ export default function Servicos() {
     setConfirmModalConfig(config);
     setConfirmModalOpen(true);
   };
+
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+  }>({
+    isOpen: false,
+    title: '',
+    description: ''
+  });
 
   // Fetch all categories with services and their variations
   const fetchData = async () => {
@@ -256,7 +266,7 @@ export default function Servicos() {
   };
 
   const handleAddVariacaoField = () => {
-    setServicoVariacoes([...servicoVariacoes, { nome: '', valor: 0 }]);
+    setServicoVariacoes([...servicoVariacoes, { nome: '', valor: '' }]);
   };
 
   const handleRemoveVariacaoField = (index: number) => {
@@ -268,7 +278,7 @@ export default function Servicos() {
     if (field === 'nome') {
       updated[index].nome = val;
     } else {
-      updated[index].valor = parseFloat(val) || 0;
+      updated[index].valor = val === '' ? '' : parseFloat(val) || 0;
     }
     setServicoVariacoes(updated);
   };
@@ -279,6 +289,9 @@ export default function Servicos() {
 
     try {
       let servicoId = '';
+      const duracaoFinal = servicoDuracao === '' ? 0 : servicoDuracao;
+      const valorFinal = servicoValor === '' ? 0 : servicoValor;
+
       if (editingServico) {
         // Update Service
         const { error } = await supabase
@@ -286,8 +299,8 @@ export default function Servicos() {
           .update({
             nome: servicoNome,
             categoria_id: servicoCategoriaId,
-            duracao_minutos: servicoDuracao,
-            valor: servicoValor
+            duracao_minutos: duracaoFinal,
+            valor: valorFinal
           })
           .eq('id', editingServico.id);
 
@@ -301,8 +314,8 @@ export default function Servicos() {
           .insert({
             nome: servicoNome,
             categoria_id: servicoCategoriaId,
-            duracao_minutos: servicoDuracao,
-            valor: servicoValor,
+            duracao_minutos: duracaoFinal,
+            valor: valorFinal,
             estabelecimento_id: estabelecimentoId
           })
           .select()
@@ -330,7 +343,7 @@ export default function Servicos() {
         const insertData = validVariacoes.map(v => ({
           servico_id: servicoId,
           nome: v.nome,
-          valor: v.valor
+          valor: v.valor === '' ? 0 : v.valor
         }));
         const { error: varError } = await supabase
           .from('variacoes_servico')
@@ -341,6 +354,13 @@ export default function Servicos() {
 
       setIsServicoModalOpen(false);
       fetchData();
+      setSuccessModal({
+        isOpen: true,
+        title: editingServico ? 'Serviço atualizado!' : 'Serviço criado!',
+        description: editingServico
+          ? `O serviço "${servicoNome}" foi atualizado com sucesso.`
+          : `O serviço "${servicoNome}" foi criado com sucesso.`
+      });
     } catch (err) {
       console.error(err);
       showTemporaryError('Falha ao salvar serviço.');
@@ -517,10 +537,10 @@ export default function Servicos() {
           {filteredCategorias.map(cat => (
             <div
               key={cat.id}
-              className="bg-white border border-border rounded-[14px] overflow-hidden shadow-sm"
+              className="bg-white border border-border rounded-[14px] shadow-sm"
             >
               {/* Category Header */}
-              <div className="bg-rose-50/20 border-b border-border px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="bg-rose-50/20 border-b border-border px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-t-[14px]">
                 <div className="flex items-center gap-3">
                   <h3 className="font-title font-semibold text-xl text-text-primary flex items-center gap-2">
                     {cat.nome}
@@ -550,7 +570,7 @@ export default function Servicos() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                     {cat.servicos.length > 0 && (
-                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-text-primary text-white text-[11px] rounded shadow-lg z-10 font-sans leading-relaxed">
+                      <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-text-primary text-white dark:bg-zinc-800 dark:text-zinc-100 border dark:border-zinc-700/50 text-[11px] rounded shadow-lg z-10 font-sans leading-relaxed">
                         Não é permitido excluir uma categoria com serviços vinculados. Desative-a em vez disso.
                       </div>
                     )}
@@ -560,15 +580,15 @@ export default function Servicos() {
 
               {/* Services List inside Category */}
               {cat.servicos.length === 0 ? (
-                <div className="p-6 text-center text-text-muted text-sm italic bg-white">
+                <div className="p-6 text-center text-text-muted text-sm italic bg-white rounded-b-[14px]">
                   Nenhum serviço nesta categoria.
                 </div>
               ) : (
-                <div className="divide-y divide-border bg-white">
+                <div className="divide-y divide-border bg-white rounded-b-[14px]">
                   {cat.servicos.map(serv => (
                     <div 
                       key={serv.id} 
-                      className={`px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-150 hover:bg-bg/10 ${!serv.ativo ? 'opacity-50' : ''}`}
+                      className={`px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-150 hover:bg-bg/10 last:rounded-b-[14px] ${!serv.ativo ? 'opacity-50' : ''}`}
                     >
                       {/* Left: Info */}
                       <div className="flex-1 min-w-0 space-y-1.5">
@@ -758,7 +778,7 @@ export default function Servicos() {
                     required
                     min="1"
                     value={servicoDuracao}
-                    onChange={(e) => setServicoDuracao(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setServicoDuracao(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400"
                   />
                 </div>
@@ -773,7 +793,7 @@ export default function Servicos() {
                     step="0.01"
                     min="0"
                     value={servicoValor}
-                    onChange={(e) => setServicoValor(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setServicoValor(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400"
                   />
                 </div>
@@ -808,7 +828,7 @@ export default function Servicos() {
                           <input 
                             type="text" 
                             required
-                            placeholder="Nome (Ex: Pernas, Axilas)"
+                            placeholder="Ex: Manutenção Fio a Fio, Volume Russo..."
                             value={variacao.nome}
                             onChange={(e) => handleVariacaoChange(index, 'nome', e.target.value)}
                             className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white text-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-rose-400"
@@ -869,6 +889,17 @@ export default function Servicos() {
         description={confirmModalConfig?.description || ''}
         warningText={confirmModalConfig?.warningText}
         type="danger"
+      />
+
+      <ConfirmModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        onConfirm={() => setSuccessModal({ ...successModal, isOpen: false })}
+        title={successModal.title}
+        description={successModal.description}
+        type="success"
+        confirmText="OK"
+        singleAction
       />
     </div>
   );
