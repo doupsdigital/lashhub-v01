@@ -78,6 +78,7 @@ function gerarSlots(
   horaFim: string,
   duracaoTotal: number,
   agendamentos: { data_hora: string; duracao_minutos: number }[],
+  bloqueiosDoDia: BloqueioAgenda[],
 ): string[] {
   const ini = toMin(horaInicio);
   const fim = toMin(horaFim);
@@ -85,14 +86,25 @@ function gerarSlots(
 
   for (let t = ini; t + duracaoTotal <= fim; t += 30) {
     const slotFim = t + duracaoTotal;
-    const ocupado = agendamentos.some(ag => {
+    const ocupadoPorAgendamento = agendamentos.some(ag => {
       // Usa Date para converter UTC → hora local corretamente
       const d = new Date(ag.data_hora);
       const agIni = d.getHours() * 60 + d.getMinutes();
       const agFim = agIni + ag.duracao_minutos;
       return t < agFim && slotFim > agIni;
     });
-    if (!ocupado) slots.push(fromMin(t));
+
+    if (ocupadoPorAgendamento) continue;
+
+    const ocupadoPorBloqueio = bloqueiosDoDia.some(b => {
+      if (b.dia_inteiro !== false) return true;
+      if (!b.hora_inicio || !b.hora_fim) return false;
+      const bIni = toMin(b.hora_inicio.substring(0, 5));
+      const bFim = toMin(b.hora_fim.substring(0, 5));
+      return t < bFim && slotFim > bIni;
+    });
+
+    if (!ocupadoPorBloqueio) slots.push(fromMin(t));
   }
 
   return slots;
@@ -330,7 +342,8 @@ export default function PortalAgendar() {
           .lte('data_hora', `${dataSelecionada}T23:59:59Z`)
           .in('status', ['pendente', 'confirmado']);
 
-        setSlots(gerarSlots(horarioDia.hora_inicio, horarioDia.hora_fim, duracaoTotal, agData || []));
+        const blocksForDay = bloqueios.filter(b => dataSelecionada >= b.data_inicio && dataSelecionada <= b.data_fim);
+        setSlots(gerarSlots(horarioDia.hora_inicio, horarioDia.hora_fim, duracaoTotal, agData || [], blocksForDay));
       } finally {
         setLoadingSlots(false);
       }
@@ -361,7 +374,7 @@ export default function PortalAgendar() {
     if (date < hoje) return false;
     if (!horarios.some(h => h.dia_semana === date.getDay())) return false;
     const ds = dateToStr(date);
-    if (bloqueios.some(b => ds >= b.data_inicio && ds <= b.data_fim)) return false;
+    if (bloqueios.some(b => b.dia_inteiro !== false && ds >= b.data_inicio && ds <= b.data_fim)) return false;
     return true;
   }
 
@@ -396,11 +409,13 @@ export default function PortalAgendar() {
           .lte('data_hora', `${dataSelecionada}T23:59:59Z`)
           .in('status', ['pendente', 'confirmado']);
 
+        const blocksForDay = bloqueios.filter(b => dataSelecionada >= b.data_inicio && dataSelecionada <= b.data_fim);
         const slotsAtuais = gerarSlots(
           horarioDia.hora_inicio,
           horarioDia.hora_fim,
           duracaoTotal,
           agRecentes || [],
+          blocksForDay,
         );
 
         if (!slotsAtuais.includes(horarioSelecionado)) {

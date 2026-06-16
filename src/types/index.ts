@@ -51,6 +51,9 @@ export interface BloqueioAgenda {
   id: string;
   data_inicio: string;
   data_fim: string;
+  dia_inteiro?: boolean;
+  hora_inicio?: string | null;
+  hora_fim?: string | null;
   motivo?: string | null;
   created_at?: string;
 }

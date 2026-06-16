@@ -497,17 +497,28 @@ export default function Agendamentos() {
       const startDateTime = new Date(`${formData}T${formHora}:00`);
       const endDateTime = new Date(startDateTime.getTime() + formDuracao * 60000);
 
-      // Check if the date falls in a blocked period
-      const isBlocked = bloqueios.some(b => formData >= b.data_inicio && formData <= b.data_fim);
-      if (isBlocked) {
-        showTemporaryError('Não é permitido agendar em datas bloqueadas ou folgas.');
-        setSaving(false);
-        return;
-      }
-
       const dayOfWeek = startDateTime.getDay();
       const startHourStr = startDateTime.toLocaleTimeString('pt-BR', { hour12: false });
       const endHourStr = endDateTime.toLocaleTimeString('pt-BR', { hour12: false });
+
+      // Check if the date falls in a blocked period (full day or overlapping time slot)
+      const isBlocked = bloqueios.some(b => {
+        if (formData >= b.data_inicio && formData <= b.data_fim) {
+          if (b.dia_inteiro !== false) {
+            return true; // full day block
+          }
+          if (b.hora_inicio && b.hora_fim) {
+            return startHourStr < b.hora_fim && endHourStr > b.hora_inicio; // hourly overlap
+          }
+        }
+        return false;
+      });
+
+      if (isBlocked) {
+        showTemporaryError('O horário ou dia selecionado está bloqueado.');
+        setSaving(false);
+        return;
+      }
 
       // 2. Expediente check: consult global horarios_atendimento (skip if not configured)
       if (workHoursConfig.length > 0) {
@@ -789,8 +800,19 @@ export default function Agendamentos() {
   // Availability validation using global horarios_atendimento and bloqueios
   const isHourAvailable = (date: Date, hour: number) => {
     const ds = formatDateStr(date);
-    const isBlocked = bloqueios.some(b => ds >= b.data_inicio && ds <= b.data_fim);
-    if (isBlocked) return false;
+    
+    const isFullDayBlocked = bloqueios.some(b => b.dia_inteiro !== false && ds >= b.data_inicio && ds <= b.data_fim);
+    if (isFullDayBlocked) return false;
+
+    const hourStrStart = `${hour.toString().padStart(2, '0')}:00:00`;
+    const hourStrEnd = `${(hour + 1).toString().padStart(2, '0')}:00:00`;
+    const isHourBlocked = bloqueios.some(b => {
+      if (b.dia_inteiro === false && b.hora_inicio && b.hora_fim && ds >= b.data_inicio && ds <= b.data_fim) {
+        return hourStrStart < b.hora_fim && hourStrEnd > b.hora_inicio;
+      }
+      return false;
+    });
+    if (isHourBlocked) return false;
 
     if (workHoursConfig.length === 0) return true;
     const dayOfWeek = date.getDay();

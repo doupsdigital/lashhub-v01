@@ -47,6 +47,9 @@ export default function MeusHorarios() {
   const [novoDataInicio, setNovoDataInicio] = useState('');
   const [novoDataFim, setNovoDataFim] = useState('');
   const [novoMotivo, setNovoMotivo] = useState('');
+  const [diaInteiro, setDiaInteiro] = useState(true);
+  const [horaInicio, setHoraInicio] = useState('09:00');
+  const [horaFim, setHoraFim] = useState('18:00');
 
   const [bloqueioToDelete, setBloqueioToDelete] = useState<BloqueioAgenda | null>(null);
 
@@ -222,11 +225,25 @@ export default function MeusHorarios() {
       return;
     }
 
+    if (!diaInteiro) {
+      if (!horaInicio || !horaFim) {
+        setBloqueioError('Preencha os horários de início e fim.');
+        return;
+      }
+      if (horaFim <= horaInicio) {
+        setBloqueioError('O horário de fim deve ser maior que o horário de início.');
+        return;
+      }
+    }
+
     setSavingBloqueio(true);
     try {
       const { error } = await supabase.from('bloqueios_agenda').insert({
         data_inicio: novoDataInicio,
         data_fim: novoDataFim,
+        dia_inteiro: diaInteiro,
+        hora_inicio: diaInteiro ? null : `${horaInicio}:00`,
+        hora_fim: diaInteiro ? null : `${horaFim}:00`,
         motivo: novoMotivo.trim() || null,
         estabelecimento_id: estabelecimentoId,
       });
@@ -235,6 +252,9 @@ export default function MeusHorarios() {
       setNovoDataInicio('');
       setNovoDataFim('');
       setNovoMotivo('');
+      setDiaInteiro(true);
+      setHoraInicio('09:00');
+      setHoraFim('18:00');
       setBloqueioSuccess('Bloqueio adicionado com sucesso!');
       await loadBloqueios();
     } catch (err: unknown) {
@@ -403,6 +423,51 @@ export default function MeusHorarios() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block">
+                Tipo de Bloqueio
+              </label>
+              <select
+                value={diaInteiro ? 'dia_inteiro' : 'horario_especifico'}
+                onChange={(e) => setDiaInteiro(e.target.value === 'dia_inteiro')}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 cursor-pointer"
+              >
+                <option value="dia_inteiro">Dia Inteiro</option>
+                <option value="horario_especifico">Horário Específico</option>
+              </select>
+            </div>
+
+            {!diaInteiro && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block">
+                    Hora Início <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={horaInicio}
+                    onChange={(e) => setHoraInicio(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block">
+                    Hora Fim <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={horaFim}
+                    onChange={(e) => setHoraFim(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
           {bloqueioError && (
             <div className="mt-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2.5">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
@@ -449,7 +514,16 @@ export default function MeusHorarios() {
               >
                 <div>
                   <p className="text-sm font-medium text-text-primary">
-                    {formatDate(b.data_inicio)} a {formatDate(b.data_fim)}
+                    {b.data_inicio === b.data_fim ? (
+                      formatDate(b.data_inicio)
+                    ) : (
+                      `${formatDate(b.data_inicio)} a ${formatDate(b.data_fim)}`
+                    )}
+                    {b.dia_inteiro === false && b.hora_inicio && b.hora_fim && (
+                      <span className="text-rose-600 font-semibold ml-1.5">
+                        das {b.hora_inicio.substring(0, 5)} às {b.hora_fim.substring(0, 5)}
+                      </span>
+                    )}
                   </p>
                   {b.motivo && (
                     <p className="text-xs text-text-secondary mt-0.5">{b.motivo}</p>
