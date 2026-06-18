@@ -21,15 +21,10 @@ import {
   Tooltip,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   Legend
 } from 'recharts';
 
 type PeriodType = 'hoje' | 'ontem' | '7dias' | 'esteMes' | 'mesPassado' | 'esteAno' | 'personalizado';
-
-const COLORS = ['#A85560', '#C9A96E', '#7A2E38', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899'];
 
 // Helpers for Date management
 const formatDateStr = (date: Date) => {
@@ -119,7 +114,7 @@ export default function Dashboard() {
   const [appointmentsWeekdayData, setAppointmentsWeekdayData] = useState<any[]>([]);
   const [clientsNewRecurrentData, setClientsNewRecurrentData] = useState<any[]>([]);
   const [topServicesData, setTopServicesData] = useState<any[]>([]);
-  const [revenueCategoryData, setRevenueCategoryData] = useState<any[]>([]);
+  const [faltasCancelamentosData, setFaltasCancelamentosData] = useState<{ totalFaltas: number; totalCancelamentos: number }>({ totalFaltas: 0, totalCancelamentos: 0 });
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -444,21 +439,10 @@ export default function Dashboard() {
       // Recharts bar horizontal usually renders bottom-to-top, reverse it so highest is at the top
       setTopServicesData(topServices.reverse());
 
-      // --- Chart 5: Revenue by service category ---
-      const catMapRevenue = new Map<string, number>();
-      concludedRecords.forEach(a => {
-        (a.agendamento_servicos || []).forEach((as: any) => {
-          const catName = serviceMap.get(as.servico_id)?.categoriaNome || 'Sem Categoria';
-          catMapRevenue.set(catName, (catMapRevenue.get(catName) || 0) + Number(as.valor_cobrado || 0));
-        });
-      });
-
-      setRevenueCategoryData(
-        Array.from(catMapRevenue.entries()).map(([nome, valor]) => ({
-          name: nome,
-          value: valor
-        }))
-      );
+      // --- Chart 5: Faltas e Cancelamentos no período ---
+      const totalFaltas = apptRecords.filter(a => a.status === 'falta').length;
+      const totalCancelamentos = apptRecords.filter(a => a.status === 'cancelado').length;
+      setFaltasCancelamentosData({ totalFaltas, totalCancelamentos });
 
     } catch (err: any) {
       console.error(err);
@@ -738,7 +722,7 @@ export default function Dashboard() {
               <div className="bg-white border border-border rounded-[14px] p-5 shadow-sm">
                 <h3 className="font-title font-semibold text-lg text-text-primary flex items-center gap-2 mb-4">
                   <Users className="w-5 h-5 text-rose-600" />
-                  Clientes novos vs recorrentes
+                  Clientes Novas vs Fiéis
                 </h3>
                 {clientsNewRecurrentData.length === 0 || clientsNewRecurrentData.every(d => d.Novos === 0 && d.Recorrentes === 0) ? (
                   renderEmptyState('Sem atendimentos de clientes no período selecionado.')
@@ -808,62 +792,26 @@ export default function Dashboard() {
 
             </div>
 
-            {/* Row 4: Revenue by service category */}
+            {/* Row 4: Faltas e Cancelamentos */}
             <div className="bg-white border border-border rounded-[14px] p-5 shadow-sm">
-              <h3 className="font-title font-semibold text-lg text-text-primary flex items-center gap-2 mb-4">
-                <Coins className="w-5 h-5 text-rose-600" />
-                Receita por categoria de serviço
+              <h3 className="font-title font-semibold text-lg text-text-primary flex items-center gap-2 mb-2">
+                <AlertCircle className="w-5 h-5 text-rose-600" />
+                Faltas e Cancelamentos
               </h3>
-              {revenueCategoryData.length === 0 || revenueCategoryData.every(d => d.value === 0) ? (
-                renderEmptyState('Sem receita categorizada no período.')
+              <p className="text-xs text-text-secondary mb-6">Agendamentos perdidos no período selecionado.</p>
+              {faltasCancelamentosData.totalFaltas === 0 && faltasCancelamentosData.totalCancelamentos === 0 ? (
+                renderEmptyState('Nenhuma falta ou cancelamento no período.')
               ) : (
-                <div className="h-[300px] w-full font-sans text-xs flex flex-col md:flex-row items-center justify-around gap-6">
-                  <div className="w-full md:w-1/2 h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={revenueCategoryData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {revenueCategoryData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          formatter={(value: any) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
-                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid rgba(180,150,130,0.2)' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center justify-center bg-red-50 border border-red-100 rounded-xl p-6 gap-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-red-500">Faltas (No-show)</p>
+                    <p className="font-title font-bold text-4xl text-red-600">{faltasCancelamentosData.totalFaltas}</p>
+                    <p className="text-[10px] text-text-muted">cliente não apareceu</p>
                   </div>
-
-                  {/* Custom list legend with values */}
-                  <div className="w-full md:w-1/2 space-y-2 max-h-[240px] overflow-y-auto pr-3">
-                    {revenueCategoryData.map((item, idx) => {
-                      const percentage = (item.value / totalEarned) * 100;
-                      return (
-                        <div key={idx} className="flex items-center justify-between text-xs border-b border-border/40 pb-2">
-                          <div className="flex items-center gap-2">
-                            <span 
-                              className="w-3 h-3 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                            />
-                            <span className="font-semibold text-text-primary">{item.name}</span>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-rose-800">
-                              R$ {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-[9px] text-text-muted">{percentage.toFixed(1)}% do total</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-xl p-6 gap-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Cancelamentos</p>
+                    <p className="font-title font-bold text-4xl text-gray-600">{faltasCancelamentosData.totalCancelamentos}</p>
+                    <p className="text-[10px] text-text-muted">agendamentos cancelados</p>
                   </div>
                 </div>
               )}
