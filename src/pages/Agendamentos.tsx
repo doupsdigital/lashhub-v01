@@ -87,6 +87,8 @@ export default function Agendamentos() {
     dateStr: string;
     timeStr: string;
     whatsappLink?: string;
+    tipo?: 'padrao' | 'conclusao';
+    valor?: number;
   } | null>(null);
 
   // Form / Modal States
@@ -785,7 +787,17 @@ export default function Agendamentos() {
 
       setConcludeAppt(null);
       setIsDetailOpen(false);
-      showTemporarySuccess('Atendimento concluído com sucesso!');
+      const dateObj = new Date(appt.data_hora);
+      setSuccessModal({
+        isOpen: true,
+        tipo: 'conclusao',
+        title: 'Atendimento Concluído!',
+        clientName: clientName,
+        services: appt.agendamento_servicos?.map(s => s.servico?.nome).join(', ') || '—',
+        dateStr: dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+        timeStr: dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        valor: valorFinal,
+      });
       fetchAppointments();
     } catch (err) {
       console.error(err);
@@ -860,7 +872,15 @@ export default function Agendamentos() {
           await registrarLog('excluiu', 'agendamento', appt.id, `Excluiu permanentemente agendamento de "${clientName}"`);
 
           setIsDetailOpen(false);
-          showTemporarySuccess('Agendamento excluído com sucesso!');
+          const dateObj = new Date(appt.data_hora);
+          setSuccessModal({
+            isOpen: true,
+            title: 'Agendamento Excluído',
+            clientName,
+            services: appt.agendamento_servicos?.map(s => s.servico?.nome).join(', ') || '—',
+            dateStr: dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+            timeStr: dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          });
           fetchAppointments();
         } catch (err) {
           console.error(err);
@@ -1950,48 +1970,68 @@ export default function Agendamentos() {
       {/* SUCCESS CONFIRMATION MODAL */}
       {successModal && successModal.isOpen && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-md p-6 text-center animate-slide-up space-y-4">
-            
-            {/* Animated Check Icon */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-50 border border-green-200 flex items-center justify-center text-green-600 animate-pulse">
-              <CheckCircle className="w-9 h-9" />
-            </div>
+          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-md animate-slide-up overflow-hidden">
 
-            <div className="space-y-1">
-              <h3 className="font-title font-bold text-xl text-text-primary">
-                {successModal.title}
-              </h3>
-              <p className="text-xs text-text-secondary">
-                Os dados da reserva foram registrados com sucesso no sistema.
-              </p>
-            </div>
+            {/* Header especial para conclusão */}
+            {successModal.tipo === 'conclusao' ? (
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 px-6 pt-6 pb-5 text-center text-white">
+                <div className="mx-auto w-14 h-14 rounded-full bg-amber-400/25 flex items-center justify-center mb-3">
+                  <Coins className="w-7 h-7 text-amber-300" />
+                </div>
+                <h3 className="font-title font-bold text-xl leading-snug">
+                  Atendimento Concluído!
+                </h3>
+                <p className="text-emerald-100 text-xs mt-1">
+                  O valor foi registrado no seu dashboard.
+                </p>
+                {successModal.valor !== undefined && (
+                  <div className="mt-4 bg-white/15 rounded-xl px-4 py-3 inline-block">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-200 mb-0.5">Valor recebido</p>
+                    <p className="font-title font-bold text-2xl text-white">
+                      R$ {successModal.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="px-6 pt-6 pb-2 text-center">
+                <div className="mx-auto w-16 h-16 rounded-full bg-green-50 border border-green-200 flex items-center justify-center text-green-600 mb-3 animate-pulse">
+                  <CheckCircle className="w-9 h-9" />
+                </div>
+                <h3 className="font-title font-bold text-xl text-text-primary">{successModal.title}</h3>
+                <p className="text-xs text-text-secondary mt-1">Os dados foram registrados com sucesso no sistema.</p>
+              </div>
+            )}
 
-            {/* Details Box */}
-            <div className="bg-bg/40 border border-border/80 rounded-xl p-4 text-left text-xs space-y-2.5">
-              <div className="flex justify-between border-b border-border/40 pb-1.5">
-                <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Cliente</span>
-                <span className="font-semibold text-text-primary">{successModal.clientName}</span>
+            {/* Details */}
+            <div className="px-6 py-4 space-y-4">
+              <div className="bg-bg/40 border border-border/80 rounded-xl p-4 text-xs space-y-2.5">
+                <div className="flex justify-between border-b border-border/40 pb-1.5">
+                  <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Cliente</span>
+                  <span className="font-semibold text-text-primary">{successModal.clientName}</span>
+                </div>
+                <div className="flex justify-between border-b border-border/40 pb-1.5">
+                  <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Procedimento(s)</span>
+                  <span className="font-semibold text-text-primary max-w-[200px] truncate text-right">{successModal.services}</span>
+                </div>
+                <div className="flex justify-between border-b border-border/40 pb-1.5">
+                  <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Data</span>
+                  <span className="font-semibold text-text-primary">{successModal.dateStr}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Horário</span>
+                  <span className="font-semibold text-text-primary">{successModal.timeStr}</span>
+                </div>
               </div>
-              <div className="flex justify-between border-b border-border/40 pb-1.5">
-                <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Procedimento(s)</span>
-                <span className="font-semibold text-text-primary max-w-[200px] truncate text-right">{successModal.services}</span>
-              </div>
-              <div className="flex justify-between border-b border-border/40 pb-1.5">
-                <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Data</span>
-                <span className="font-semibold text-text-primary">{successModal.dateStr}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold text-text-secondary uppercase text-[10px] tracking-wider">Horário</span>
-                <span className="font-semibold text-text-primary">{successModal.timeStr}</span>
-              </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setSuccessModal(null)}
-                className="py-2 border border-border hover:bg-bg rounded-lg text-xs font-semibold text-text-secondary transition-colors cursor-pointer"
+                className={`w-full py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  successModal.tipo === 'conclusao'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-rose-600 hover:bg-rose-800 text-white'
+                }`}
               >
                 Concluir e Fechar
               </button>
