@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Phone, Mail, Lock, ShieldAlert, Loader2, Sparkles, AlertCircle, Camera, Trash2 } from 'lucide-react';
+import { User, Phone, Mail, Lock, ShieldAlert, Loader2, CheckCircle2, AlertCircle, Camera, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -18,11 +18,15 @@ function formatWhatsApp(value: string): string {
 export default function PortalPerfil() {
   const { user, profile, clienteId, refreshProfile } = useAuth();
 
+  // Modal de sucesso centralizado
+  const [successModal, setSuccessModal] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false, title: '', message: '',
+  });
+
   // Seção 0: Foto de Perfil
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [erroAvatar, setErroAvatar] = useState<string | null>(null);
-  const [sucessoAvatar, setSucessoAvatar] = useState<string | null>(null);
 
   // Seção 1: Dados Pessoais
   const [nome, setNome] = useState('');
@@ -34,14 +38,12 @@ export default function PortalPerfil() {
   const [loadingDados, setLoadingDados] = useState(true);
   const [salvandoDados, setSalvandoDados] = useState(false);
   const [erroDados, setErroDados] = useState<string | null>(null);
-  const [sucessoDados, setSucessoDados] = useState<string | null>(null);
 
   // Seção 2: Alterar Senha
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [salvandoSenha, setSalvandoSenha] = useState(false);
   const [erroSenha, setErroSenha] = useState<string | null>(null);
-  const [sucessoSenha, setSucessoSenha] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clienteId) return;
@@ -86,7 +88,6 @@ export default function PortalPerfil() {
     if (!file || !user?.id) return;
 
     setErroAvatar(null);
-    setSucessoAvatar(null);
     setUploadingAvatar(true);
 
     try {
@@ -111,8 +112,8 @@ export default function PortalPerfil() {
 
       if (updateError) throw updateError;
 
-      setSucessoAvatar('Foto de perfil atualizada!');
       await refreshProfile();
+      setSuccessModal({ isOpen: true, title: 'Foto atualizada!', message: 'Sua foto de perfil foi atualizada com sucesso.' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao enviar foto de perfil.';
       setErroAvatar(msg);
@@ -126,7 +127,6 @@ export default function PortalPerfil() {
   const handleRemoveAvatar = async () => {
     if (!user?.id) return;
     setErroAvatar(null);
-    setSucessoAvatar(null);
     setUploadingAvatar(true);
 
     try {
@@ -137,8 +137,8 @@ export default function PortalPerfil() {
 
       if (error) throw error;
 
-      setSucessoAvatar('Foto de perfil removida.');
       await refreshProfile();
+      setSuccessModal({ isOpen: true, title: 'Foto removida!', message: 'Sua foto de perfil foi removida.' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao remover foto de perfil.';
       setErroAvatar(msg);
@@ -170,7 +170,6 @@ export default function PortalPerfil() {
 
     setSalvandoDados(true);
     setErroDados(null);
-    setSucessoDados(null);
 
     try {
       // 1. UPDATE em clientes
@@ -217,14 +216,14 @@ export default function PortalPerfil() {
       await refreshProfile(); // atualiza o perfil no AuthContext
 
       if (mudouEmail) {
-        setSucessoDados(
-          'Dados atualizados! Um e-mail de confirmação foi enviado para o novo endereço. Confirme para concluir a alteração.'
-        );
+        setSuccessModal({
+          isOpen: true,
+          title: 'Dados atualizados!',
+          message: 'Um e-mail de confirmação foi enviado para o novo endereço. Confirme para concluir a alteração.',
+        });
       } else {
-        setSucessoDados('Dados atualizados com sucesso!');
+        setSuccessModal({ isOpen: true, title: 'Dados atualizados!', message: 'Suas informações pessoais foram salvas com sucesso.' });
       }
-
-      setTimeout(() => setSucessoDados(null), 8000);
     } catch (err: any) {
       console.error('Erro ao atualizar perfil:', err);
       setErroDados(err.message || 'Erro ao salvar os dados.');
@@ -249,17 +248,14 @@ export default function PortalPerfil() {
 
     setSalvandoSenha(true);
     setErroSenha(null);
-    setSucessoSenha(null);
 
     try {
       const { error } = await supabase.auth.updateUser({ password: novaSenha });
       if (error) throw error;
 
-      setSucessoSenha('Senha alterada com sucesso!');
       setNovaSenha('');
       setConfirmarSenha('');
-
-      setTimeout(() => setSucessoSenha(null), 4000);
+      setSuccessModal({ isOpen: true, title: 'Senha alterada!', message: 'Sua senha foi atualizada com sucesso.' });
     } catch (err: any) {
       console.error('Erro ao alterar senha:', err);
       setErroSenha(err.message || 'Erro ao alterar a senha.');
@@ -310,13 +306,6 @@ export default function PortalPerfil() {
           <div className="flex items-center gap-2 p-4 mb-4 w-full bg-red-50 border border-red-200 rounded-xl text-sm text-red-800">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {erroAvatar}
-          </div>
-        )}
-
-        {sucessoAvatar && (
-          <div className="flex items-start gap-2.5 p-4 mb-4 w-full bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
-            <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-green-600" />
-            <span>{sucessoAvatar}</span>
           </div>
         )}
 
@@ -388,13 +377,6 @@ export default function PortalPerfil() {
             <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {erroDados}
-            </div>
-          )}
-
-          {sucessoDados && (
-            <div className="flex items-start gap-2.5 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
-              <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-green-600" />
-              <span>{sucessoDados}</span>
             </div>
           )}
 
@@ -499,13 +481,6 @@ export default function PortalPerfil() {
             </div>
           )}
 
-          {sucessoSenha && (
-            <div className="flex items-center gap-2.5 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
-              <Sparkles className="w-4 h-4 shrink-0 text-green-600" />
-              <span>{sucessoSenha}</span>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label htmlFor="novaSenha" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
@@ -560,6 +535,27 @@ export default function PortalPerfil() {
           Suas informações de anamnese (alergias, restrições e tratamentos) são dados sensíveis de acesso restrito e privado. Elas não são visíveis nesta página pública e só podem ser gerenciadas diretamente pela profissional em seu perfil administrativo.
         </div>
       </div>
+
+      {/* Modal de sucesso */}
+      {successModal.isOpen && (
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[14px] border border-border shadow-xl w-full max-w-sm p-6 text-center animate-slide-up space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-50 border border-green-200 flex items-center justify-center text-green-600">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">{successModal.title}</h3>
+              <p className="text-sm text-text-secondary mt-1">{successModal.message}</p>
+            </div>
+            <button
+              onClick={() => setSuccessModal({ isOpen: false, title: '', message: '' })}
+              className="w-full py-2.5 bg-rose-600 hover:bg-rose-800 text-white rounded-xl text-sm font-semibold transition-all duration-300 shadow-md cursor-pointer"
+            >
+              Concluir e Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
