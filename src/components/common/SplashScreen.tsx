@@ -34,11 +34,11 @@ export default function SplashScreen() {
         transition: 'opacity 0.6s ease-out',
       }}
     >
-      {/* Logo */}
-      <div className="flex flex-col items-center gap-6">
+      <div className="flex flex-col items-center gap-7">
+        {/* Mesmo logo usado pelo OS splash — transição imperceptível */}
         <div
-          className="rounded-[28px] overflow-hidden shadow-lg"
-          style={{ width: 100, height: 100 }}
+          className="rounded-[22px] overflow-hidden"
+          style={{ width: 96, height: 96 }}
         >
           <img
             src="/logo-login.png"
@@ -47,33 +47,28 @@ export default function SplashScreen() {
           />
         </div>
 
-        {/* Nome em Cormorant Garamond */}
-        <div className="flex flex-col items-center gap-1">
+        {/* Nome e subtítulo */}
+        <div className="flex flex-col items-center gap-1.5">
           <h1
-            className="font-title font-semibold tracking-widest text-text-primary"
-            style={{ fontSize: '2rem', letterSpacing: '0.15em' }}
+            className="font-title font-semibold text-text-primary"
+            style={{ fontSize: '2rem', letterSpacing: '0.12em' }}
           >
             Lash Hub
           </h1>
           <p
-            className="text-text-muted uppercase tracking-[0.3em] font-sans"
-            style={{ fontSize: '0.6rem' }}
+            className="uppercase text-text-muted font-sans"
+            style={{ fontSize: '0.58rem', letterSpacing: '0.28em' }}
           >
             Gestão & Agendamentos
           </p>
         </div>
       </div>
 
-      {/* Linha decorativa */}
-      <div
-        className="absolute bottom-16 flex items-center gap-2 opacity-40"
-      >
-        <div className="w-8 h-px bg-text-muted" />
-        <div
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: '#A85560' }}
-        />
-        <div className="w-8 h-px bg-text-muted" />
+      {/* Detalhe decorativo */}
+      <div className="absolute bottom-14 flex items-center gap-2 opacity-30">
+        <div className="w-8 h-px bg-text-secondary" />
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#A85560' }} />
+        <div className="w-8 h-px bg-text-secondary" />
       </div>
     </div>
   );
