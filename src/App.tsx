@@ -27,6 +27,7 @@ import { PortalProvider } from './contexts/PortalContext';
 import PlanGuard from './components/common/PlanGuard';
 import BillingGuard from './components/common/BillingGuard';
 import Faturamento from './pages/Faturamento';
+import InstallBanner from './components/common/InstallBanner';
 
 export default function App() {
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function App() {
 
   return (
     <AuthProvider>
+      <InstallBanner />
       <BrowserRouter>
         <Routes>
           {/* Públicas */}
