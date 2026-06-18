@@ -290,6 +290,7 @@ export default function PortalAgendar() {
             const serv = cat.servicos.find(s => s.id === preSelectedId);
             if (serv) {
               setSelecionados(new Map([[serv.id, { servico: serv, variacao: null }]]));
+              if (serv.variacoes.length === 0) setEtapa(2);
               break;
             }
           }
@@ -542,6 +543,30 @@ export default function PortalAgendar() {
       <h1 className="font-title font-bold text-3xl text-text-primary">Agendar Serviço</h1>
 
       <IndicadorProgresso etapaAtual={etapa as number} />
+
+      {/* Banner compacto de serviços selecionados (visível nas etapas 2, 3 e 4) */}
+      {etapa !== 1 && itens.length > 0 && (
+        <div className="flex items-center gap-3 bg-rose-50/60 border border-rose-200 rounded-xl px-4 py-3 text-sm">
+          <CheckCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <div className="flex-1 flex flex-wrap gap-x-4 gap-y-1">
+            {itens.map(it => (
+              <span key={it.servico.id} className="text-text-primary">
+                <span className="font-medium">{it.servico.nome}</span>
+                {it.variacao && <span className="text-text-muted"> — {it.variacao.nome}</span>}
+                <span className="text-text-muted ml-2">
+                  · {formatDuracao(getDuracaoEfetiva(it))} · {formatValor(getValorEfetivo(it))}
+                </span>
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={() => setEtapa(1)}
+            className="text-xs text-rose-600 hover:text-rose-800 font-semibold whitespace-nowrap cursor-pointer"
+          >
+            Alterar
+          </button>
+        </div>
+      )}
 
       {/* ─── ETAPA 1 — Serviços ───────────────────────────────────────────────── */}
       {etapa === 1 && (
