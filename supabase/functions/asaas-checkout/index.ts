@@ -115,8 +115,10 @@ serve(async (req) => {
     if (!payment) throw new Error('Nenhum pagamento encontrado para a assinatura')
 
     // 4. Busca o QR Code Pix do pagamento
+    console.log('Buscando QR Code para payment:', payment.id, 'status:', payment.status)
     const qrRes  = await fetch(`${ASAAS_BASE_URL}/payments/${payment.id}/pixQrCode`, { headers: asaasHeaders })
     const qrCode = await qrRes.json()
+    console.log('QR Code response:', JSON.stringify(qrCode))
 
     // 5. Salva os IDs do Asaas no banco
     await supabase
