@@ -374,6 +374,12 @@ export default function Faturamento() {
                   />
                   {cpfError && <p className="text-xs text-red-600">{cpfError}</p>}
                 </div>
+                {checkoutError && (
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs">
+                    <X className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{checkoutError}</span>
+                  </div>
+                )}
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setCheckoutMode('none')}
