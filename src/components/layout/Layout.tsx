@@ -11,25 +11,25 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   return (
-    <div className="min-h-screen bg-bg flex font-sans">
+    <div className="h-screen bg-bg flex font-sans overflow-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar 
-        collapsed={collapsed} 
-        setCollapsed={setCollapsed} 
-        mobileOpen={mobileOpen} 
-        setMobileOpen={setMobileOpen} 
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
       />
 
       {/* Main Content Area */}
-      <div 
+      <div
         className={`
-          flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out
+          flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out
           ${collapsed ? 'md:pl-[64px]' : 'md:pl-[220px]'}
         `}
       >
         <Header setMobileOpen={setMobileOpen} />
-        
-        <main className="flex-1 p-6 md:p-8 max-w-[1600px] w-full mx-auto">
+
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 max-w-[1600px] w-full mx-auto">
           <Outlet />
         </main>
       </div>
