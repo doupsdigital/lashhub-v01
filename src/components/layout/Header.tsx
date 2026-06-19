@@ -23,6 +23,8 @@ export default function Header({ setMobileOpen }: HeaderProps) {
         return { title: 'Meus Horários', subtitle: 'Gerencie seu expediente e bloqueios de agenda' };
       case '/configuracoes':
         return { title: 'Configurações' };
+      case '/assinatura':
+        return { title: 'Minha Assinatura' };
       default:
         if (pathname.startsWith('/clientes/')) return { title: 'Perfil do Cliente' };
         return { title: 'Studio' };
