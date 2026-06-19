@@ -30,44 +30,44 @@ function PaymentButtons({
   onToggleAsaasInfo: () => void;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Pix */}
       <button
         onClick={onPix}
         disabled={pixLoading || cardLoading}
-        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+        className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15 disabled:opacity-60 disabled:pointer-events-none"
       >
-        {pixLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5" />}
+        {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
         Pagar com Pix
       </button>
 
       {/* Cartão */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         <button
           onClick={onCard}
           disabled={pixLoading || cardLoading}
-          className="w-full py-2.5 border border-border hover:bg-bg text-text-primary rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+          className="w-full py-3 px-4 border border-border hover:bg-bg active:scale-[0.99] text-text-primary rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-md disabled:opacity-60 disabled:pointer-events-none"
         >
-          {cardLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+          {cardLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
           Pagar com Cartão de Crédito
         </button>
 
         {/* Trust line */}
-        <div className="flex items-center justify-center gap-1 text-[10px] text-text-muted">
-          <Lock className="w-2.5 h-2.5" />
+        <div className="flex items-center justify-center gap-1.5 text-[10px] text-text-muted pt-1">
+          <Lock className="w-3 h-3" />
           <span>Processado com segurança pelo</span>
           <button
             onClick={onToggleAsaasInfo}
             className="font-semibold text-text-secondary underline decoration-dotted cursor-pointer flex items-center gap-0.5"
           >
             Asaas
-            <Info className="w-2.5 h-2.5" />
+            <Info className="w-3 h-3" />
           </button>
         </div>
 
         {/* Tooltip Asaas */}
         {showAsaasInfo && (
-          <div className="text-[10px] bg-blue-50 border border-blue-100 text-blue-700 p-2.5 rounded-lg leading-relaxed">
+          <div className="text-[10px] bg-blue-50 border border-blue-100 text-blue-700 p-2.5 rounded-lg leading-relaxed animate-fade-in">
             <strong>Asaas</strong> é uma fintech brasileira regulada pelo Banco Central do Brasil, usada por mais de 300 mil empresas para cobranças seguras via Pix, Cartão e Boleto.
           </div>
         )}
@@ -474,16 +474,16 @@ export default function Faturamento() {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setCheckoutMode('none')}
-                    className="flex-1 py-2.5 border border-border rounded-xl text-xs font-semibold text-text-secondary cursor-pointer"
+                    className="flex-1 py-3 border border-border rounded-xl text-sm font-semibold text-text-secondary hover:bg-bg active:scale-[0.99] transition-all duration-200 cursor-pointer"
                   >
                     Voltar
                   </button>
                   <button
                     onClick={handleCpfSubmit}
                     disabled={loading}
-                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
                   >
-                    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5" />}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
                     Gerar QR Code Pix
                   </button>
                 </div>
@@ -560,7 +560,7 @@ export default function Faturamento() {
               </p>
               <button
                 onClick={() => setCheckoutMode('none')}
-                className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+                className="px-8 py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15"
               >
                 Voltar para Minha Assinatura
               </button>
