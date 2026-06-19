@@ -177,6 +177,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           ${collapsed ? 'w-[64px]' : 'w-[220px]'}
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
+        style={{ paddingLeft: 'env(safe-area-inset-left)' }}
       >
         {/* Top Header / Logo */}
         <div className="flex flex-col flex-1 min-h-0">
