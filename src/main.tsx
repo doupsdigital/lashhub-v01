@@ -20,9 +20,6 @@ if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
     });
   };
 
-  // Primeiro load
-  window.addEventListener('load', repaint);
-
   // Após rotação de tela (aguarda o browser concluir o resize)
   window.addEventListener('orientationchange', () => setTimeout(repaint, 300));
 

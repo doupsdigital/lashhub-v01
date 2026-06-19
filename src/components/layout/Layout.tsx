@@ -1,7 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+const iosRepaint = () => {
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 1);
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  });
+};
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -9,6 +18,14 @@ export default function Layout() {
     return saved ? JSON.parse(saved) : false;
   });
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+
+  // iOS: força repaint após montagem do layout para corrigir
+  // o padding-top que não é renderizado na primeira pintura visual.
+  useEffect(() => {
+    if (!isIOS) return;
+    const timer = setTimeout(iosRepaint, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div
