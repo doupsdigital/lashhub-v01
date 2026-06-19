@@ -85,7 +85,7 @@ serve(async (req) => {
       headers: asaasHeaders,
       body: JSON.stringify({
         customer: customerId,
-        billingType: 'PIX',
+        billingType: 'UNDEFINED',
         value: valor,
         nextDueDate: hoje,
         cycle: 'MONTHLY',
