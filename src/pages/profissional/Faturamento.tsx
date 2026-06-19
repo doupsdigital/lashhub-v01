@@ -4,7 +4,6 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
 import {
   Check,
-  QrCode,
   Sparkles,
   Calendar,
   AlertTriangle,
@@ -18,6 +17,19 @@ import {
   Lock,
   Info,
 } from 'lucide-react';
+
+function PixIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 0.002L0.002 12 12 23.998 23.998 12 12 0.002zm0 4.238L19.76 12 12 19.76 4.24 12 12 4.24zm0 3.398L7.638 12 12 16.362 16.362 12 12 7.638z" />
+    </svg>
+  );
+}
 
 function PaymentButtons({
   onPix, onCard, pixLoading, cardLoading, showAsaasInfo, onToggleAsaasInfo,
@@ -37,7 +49,7 @@ function PaymentButtons({
         disabled={pixLoading || cardLoading}
         className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15 disabled:opacity-60 disabled:pointer-events-none"
       >
-        {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+        {pixLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PixIcon className="w-4 h-4" />}
         Pagar com Pix
       </button>
 
@@ -471,20 +483,20 @@ export default function Faturamento() {
                     <span>{checkoutError}</span>
                   </div>
                 )}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setCheckoutMode('none')}
-                    className="flex-1 py-3 border border-border rounded-xl text-sm font-semibold text-text-secondary hover:bg-bg active:scale-[0.99] transition-all duration-200 cursor-pointer"
-                  >
-                    Voltar
-                  </button>
+                <div className="space-y-3 pt-2">
                   <button
                     onClick={handleCpfSubmit}
                     disabled={loading}
-                    className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
+                    className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PixIcon className="w-4 h-4" />}
                     Gerar QR Code Pix
+                  </button>
+                  <button
+                    onClick={() => setCheckoutMode('none')}
+                    className="w-full py-3 border border-border hover:bg-bg active:scale-[0.99] text-text-secondary rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer text-center"
+                  >
+                    Voltar
                   </button>
                 </div>
               </div>
@@ -495,7 +507,7 @@ export default function Faturamento() {
           {checkoutMode === 'pix' && (
             <div className="bg-white border border-border rounded-2xl shadow-sm p-6 md:p-8 animate-fade-in">
               <h2 className="font-title font-bold text-xl text-text-primary mb-1 flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-rose-600" />
+                <PixIcon className="w-5 h-5 text-rose-600" />
                 Pague via Pix — Plano {selectedPlanToBuy === 'premium' ? 'Premium' : 'Básico'}
               </h2>
               <p className="text-sm text-text-secondary mb-6">Escaneie o QR Code ou copie o código Pix abaixo. O acesso é liberado automaticamente após a confirmação.</p>
