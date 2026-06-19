@@ -282,18 +282,24 @@ export default function Faturamento() {
                     </ul>
                   </div>
                 </div>
-                <div className="p-6 border-t border-border">
+                <div className="p-6 border-t border-border space-y-2">
                   {!isPremium && status === 'ativo' ? (
                     <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">Plano Ativo</div>
                   ) : (
-                    <button
-                      onClick={() => handleOpenCpfStep('basico')}
-                      disabled={loading}
-                      className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      Assinar via Pix
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleOpenCpfStep('basico')}
+                        disabled={loading}
+                        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                      >
+                        Assinar agora
+                      </button>
+                      <div className="flex items-center justify-center gap-3 text-[10px] text-text-muted pt-0.5">
+                        <span className="flex items-center gap-1"><QrCode className="w-3 h-3" /> Pix</span>
+                        <span className="text-border">|</span>
+                        <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cartão de Crédito</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -327,18 +333,24 @@ export default function Faturamento() {
                     </ul>
                   </div>
                 </div>
-                <div className="p-6 border-t border-border">
+                <div className="p-6 border-t border-border space-y-2">
                   {isPremium && status === 'ativo' ? (
                     <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">Plano Ativo</div>
                   ) : (
-                    <button
-                      onClick={() => handleOpenCpfStep('premium')}
-                      disabled={loading}
-                      className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      Assinar via Pix
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleOpenCpfStep('premium')}
+                        disabled={loading}
+                        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                      >
+                        Assinar agora
+                      </button>
+                      <div className="flex items-center justify-center gap-3 text-[10px] text-text-muted pt-0.5">
+                        <span className="flex items-center gap-1"><QrCode className="w-3 h-3" /> Pix</span>
+                        <span className="text-border">|</span>
+                        <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cartão de Crédito</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
