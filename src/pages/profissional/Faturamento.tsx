@@ -15,7 +15,66 @@ import {
   Loader2,
   X,
   CreditCard,
+  Lock,
+  Info,
 } from 'lucide-react';
+
+function PaymentButtons({
+  onPix, onCard, pixLoading, cardLoading, showAsaasInfo, onToggleAsaasInfo,
+}: {
+  onPix: () => void;
+  onCard: () => void;
+  pixLoading: boolean;
+  cardLoading: boolean;
+  showAsaasInfo: boolean;
+  onToggleAsaasInfo: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {/* Pix */}
+      <button
+        onClick={onPix}
+        disabled={pixLoading || cardLoading}
+        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+      >
+        {pixLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5" />}
+        Pagar com Pix
+      </button>
+
+      {/* Cartão */}
+      <div className="space-y-1">
+        <button
+          onClick={onCard}
+          disabled={pixLoading || cardLoading}
+          className="w-full py-2.5 border border-border hover:bg-bg text-text-primary rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+        >
+          {cardLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+          Pagar com Cartão de Crédito
+        </button>
+
+        {/* Trust line */}
+        <div className="flex items-center justify-center gap-1 text-[10px] text-text-muted">
+          <Lock className="w-2.5 h-2.5" />
+          <span>Processado com segurança pelo</span>
+          <button
+            onClick={onToggleAsaasInfo}
+            className="font-semibold text-text-secondary underline decoration-dotted cursor-pointer flex items-center gap-0.5"
+          >
+            Asaas
+            <Info className="w-2.5 h-2.5" />
+          </button>
+        </div>
+
+        {/* Tooltip Asaas */}
+        {showAsaasInfo && (
+          <div className="text-[10px] bg-blue-50 border border-blue-100 text-blue-700 p-2.5 rounded-lg leading-relaxed">
+            <strong>Asaas</strong> é uma fintech brasileira regulada pelo Banco Central do Brasil, usada por mais de 300 mil empresas para cobranças seguras via Pix, Cartão e Boleto.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Faturamento() {
   const { profile, refreshProfile } = useAuth();
@@ -34,6 +93,8 @@ export default function Faturamento() {
   const [copied, setCopied] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [showAsaasInfo, setShowAsaasInfo] = useState(false);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -82,6 +143,35 @@ export default function Faturamento() {
       return;
     }
     handleAsaasCheckout(selectedPlanToBuy, cpfInput.replace(/\D/g, ''));
+  };
+
+  // Checkout via cartão — cria assinatura e abre invoiceUrl do Asaas em nova aba
+  const handleCardCheckout = async (plano: 'basico' | 'premium') => {
+    if (!profile?.estabelecimento_id) return;
+    setSelectedPlanToBuy(plano);
+    setCardLoading(true);
+    setCheckoutError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('asaas-checkout', {
+        body: {
+          estabelecimento_id: profile.estabelecimento_id,
+          plano,
+          email: profile.email,
+          nome:  profile.nome,
+          mode:  'card',
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.invoiceUrl) throw new Error('Link de pagamento não disponível.');
+
+      window.open(data.invoiceUrl, '_blank');
+      startPolling(profile.estabelecimento_id);
+    } catch (err: unknown) {
+      setCheckoutError(err instanceof Error ? err.message : 'Erro ao gerar link de pagamento.');
+    } finally {
+      setCardLoading(false);
+    }
   };
 
   // Chama a Edge Function asaas-checkout e exibe QR Code
@@ -286,20 +376,14 @@ export default function Faturamento() {
                   {!isPremium && status === 'ativo' ? (
                     <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">Plano Ativo</div>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => handleOpenCpfStep('basico')}
-                        disabled={loading}
-                        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
-                      >
-                        Assinar agora
-                      </button>
-                      <div className="flex items-center justify-center gap-3 text-[10px] text-text-muted pt-0.5">
-                        <span className="flex items-center gap-1"><QrCode className="w-3 h-3" /> Pix</span>
-                        <span className="text-border">|</span>
-                        <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cartão de Crédito</span>
-                      </div>
-                    </>
+                    <PaymentButtons
+                      onPix={() => handleOpenCpfStep('basico')}
+                      onCard={() => handleCardCheckout('basico')}
+                      pixLoading={loading && selectedPlanToBuy === 'basico'}
+                      cardLoading={cardLoading && selectedPlanToBuy === 'basico'}
+                      showAsaasInfo={showAsaasInfo}
+                      onToggleAsaasInfo={() => setShowAsaasInfo(v => !v)}
+                    />
                   )}
                 </div>
               </div>
@@ -337,20 +421,14 @@ export default function Faturamento() {
                   {isPremium && status === 'ativo' ? (
                     <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">Plano Ativo</div>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => handleOpenCpfStep('premium')}
-                        disabled={loading}
-                        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
-                      >
-                        Assinar agora
-                      </button>
-                      <div className="flex items-center justify-center gap-3 text-[10px] text-text-muted pt-0.5">
-                        <span className="flex items-center gap-1"><QrCode className="w-3 h-3" /> Pix</span>
-                        <span className="text-border">|</span>
-                        <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cartão de Crédito</span>
-                      </div>
-                    </>
+                    <PaymentButtons
+                      onPix={() => handleOpenCpfStep('premium')}
+                      onCard={() => handleCardCheckout('premium')}
+                      pixLoading={loading && selectedPlanToBuy === 'premium'}
+                      cardLoading={cardLoading && selectedPlanToBuy === 'premium'}
+                      showAsaasInfo={showAsaasInfo}
+                      onToggleAsaasInfo={() => setShowAsaasInfo(v => !v)}
+                    />
                   )}
                 </div>
               </div>
@@ -453,23 +531,6 @@ export default function Faturamento() {
                       </button>
                     </div>
                     {copied && <p className="text-xs text-green-600 font-semibold">Copiado!</p>}
-                  </div>
-                )}
-
-                {/* Opção de cartão de crédito */}
-                {invoiceUrl && (
-                  <div className="w-full border-t border-border pt-4 space-y-2 text-center">
-                    <p className="text-xs text-text-muted">Prefere pagar com cartão?</p>
-                    <a
-                      href={invoiceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 border border-rose-300 hover:bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      Pagar com Cartão de Crédito
-                    </a>
-                    <p className="text-[10px] text-text-muted">Abre a página segura do Asaas em uma nova aba</p>
                   </div>
                 )}
 

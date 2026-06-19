@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { estabelecimento_id, plano, email, nome, cpf_cnpj } = await req.json()
+    const { estabelecimento_id, plano, email, nome, cpf_cnpj, mode } = await req.json()
 
     const ASAAS_API_KEY  = Deno.env.get('ASAAS_API_KEY')!
     const ASAAS_BASE_URL = Deno.env.get('ASAAS_BASE_URL')!
@@ -104,10 +104,6 @@ serve(async (req) => {
     const payment = paymentsData.data?.[0]
     if (!payment) throw new Error('Nenhum pagamento encontrado para a assinatura')
 
-    // 4. Busca o QR Code Pix do pagamento
-    const qrRes  = await fetch(`${ASAAS_BASE_URL}/payments/${payment.id}/pixQrCode`, { headers: asaasHeaders })
-    const qrCode = await qrRes.json()
-
     // 5. Salva os IDs do Asaas no banco
     await supabase
       .from('estabelecimentos')
@@ -117,6 +113,18 @@ serve(async (req) => {
         plano:                   plano,
       })
       .eq('id', estabelecimento_id)
+
+    // Modo cartão: retorna apenas o invoiceUrl (sem QR Code)
+    if (mode === 'card') {
+      return new Response(
+        JSON.stringify({ invoiceUrl: payment.invoiceUrl }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Modo pix: busca o QR Code e retorna tudo
+    const qrRes  = await fetch(`${ASAAS_BASE_URL}/payments/${payment.id}/pixQrCode`, { headers: asaasHeaders })
+    const qrCode = await qrRes.json()
 
     return new Response(
       JSON.stringify({
