@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
-import { 
-  Check, 
-  CreditCard, 
-  QrCode, 
-  Sparkles, 
-  Calendar, 
-  AlertTriangle, 
+import {
+  Check,
+  QrCode,
+  Sparkles,
+  Calendar,
+  AlertTriangle,
   ShieldCheck,
-  Users
+  Users,
+  Copy,
+  CheckCircle2,
+  Loader2,
+  X,
 } from 'lucide-react';
 
 export default function Faturamento() {
@@ -18,97 +21,121 @@ export default function Faturamento() {
   const { isSubscriptionActive, isPremium, status, trialEndsAt } = useSubscription();
 
   const [loading, setLoading] = useState(false);
-  const [checkoutMode, setCheckoutMode] = useState<'none' | 'pix' | 'card'>('none');
+  const [checkoutMode, setCheckoutMode] = useState<'none' | 'pix' | 'success'>('none');
   const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<'basico' | 'premium'>('premium');
-  
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
 
-  // Calcular dias restantes do trial
-  const calculateDaysRemaining = () => {
-    if (!trialEndsAt) return 0;
-    const diffTime = new Date(trialEndsAt).getTime() - new Date().getTime();
-    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  const [pixQrCodeImage, setPixQrCodeImage] = useState<string | null>(null);
+  const [pixKey, setPixKey] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const daysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000))
+    : 0;
+
+  // Para o polling ao desmontar ou sair do checkout
+  useEffect(() => {
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+  }, []);
+
+  // Inicia polling para detectar pagamento confirmado
+  const startPolling = (estabelecimentoId: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      const { data } = await supabase
+        .from('estabelecimentos')
+        .select('status_assinatura')
+        .eq('id', estabelecimentoId)
+        .single();
+      if (data?.status_assinatura === 'ativo') {
+        clearInterval(pollingRef.current!);
+        await refreshProfile();
+        setCheckoutMode('success');
+      }
+    }, 5000);
   };
 
-  const daysRemaining = calculateDaysRemaining();
-
-  // Função para simular o pagamento pelo Asaas localmente
-  const handleSimulateAsaasPayment = async () => {
+  // Chama a Edge Function asaas-checkout e exibe QR Code
+  const handleAsaasCheckout = async (plano: 'basico' | 'premium') => {
     if (!profile?.estabelecimento_id) return;
+    setSelectedPlanToBuy(plano);
     setLoading(true);
+    setCheckoutError(null);
     try {
-      // Atualiza diretamente no banco para simular a resposta do webhook do Asaas
-      const { error } = await supabase
-        .from('estabelecimentos')
-        .update({
-          plano: selectedPlanToBuy,
-          status_assinatura: 'ativo',
-          billing_customer_id: 'cus_simulated_asaas_' + Math.random().toString(36).substring(7),
-          billing_subscription_id: 'sub_simulated_asaas_' + Math.random().toString(36).substring(7)
-        })
-        .eq('id', profile.estabelecimento_id);
+      const { data, error } = await supabase.functions.invoke('asaas-checkout', {
+        body: {
+          estabelecimento_id: profile.estabelecimento_id,
+          plano,
+          email: profile.email,
+          nome:  profile.nome,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
 
-      if (error) throw error;
-
-      await refreshProfile();
-      setCheckoutMode('none');
-      alert(`Pagamento simulado com sucesso! Plano atualizado para ${selectedPlanToBuy === 'premium' ? 'Premium (Agenda Digital)' : 'Básico (Apenas CRM)'}/Ativo.`);
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao simular pagamento.');
+      setPixQrCodeImage(data.pixQrCodeImage);
+      setPixKey(data.pixKey);
+      setCheckoutMode('pix');
+      startPolling(profile.estabelecimento_id);
+    } catch (err: unknown) {
+      setCheckoutError(err instanceof Error ? err.message : 'Erro ao gerar cobrança. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Função para simular cancelamento da assinatura
   const handleCancelSubscription = async () => {
     if (!profile?.estabelecimento_id) return;
-    if (!confirm('Deseja realmente cancelar sua assinatura? Você perderá acesso às funcionalidades premium.')) return;
-    
-    setLoading(true);
+    setCancelLoading(true);
     try {
-      const { error } = await supabase
-        .from('estabelecimentos')
-        .update({
-          plano: 'basico',
-          status_assinatura: 'cancelado'
-        })
-        .eq('id', profile.estabelecimento_id);
-
-      if (error) throw error;
-
+      const { data, error } = await supabase.functions.invoke('asaas-cancel', {
+        body: { estabelecimento_id: profile.estabelecimento_id },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       await refreshProfile();
-      alert('Assinatura cancelada com sucesso. Retornado ao plano básico.');
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao cancelar assinatura.');
+      setCancelConfirm(false);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Erro ao cancelar assinatura.');
     } finally {
-      setLoading(false);
+      setCancelLoading(false);
     }
+  };
+
+  const handleCopyPix = () => {
+    if (!pixKey) return;
+    navigator.clipboard.writeText(pixKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleBackFromCheckout = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    setCheckoutMode('none');
+    setPixQrCodeImage(null);
+    setPixKey(null);
+    setCheckoutError(null);
   };
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto font-sans">
-      
+
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-title font-bold text-3xl text-text-primary">Minha Assinatura</h1>
-          <p className="text-sm text-text-secondary mt-1">Gerencie os planos do seu estúdio e formas de pagamento.</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="font-title font-bold text-3xl text-text-primary">Minha Assinatura</h1>
+        <p className="text-sm text-text-secondary mt-1">Gerencie os planos do seu estúdio e formas de pagamento.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* Painel Esquerdo: Status da Assinatura */}
+
+        {/* Painel Esquerdo: Status */}
         <div className="md:col-span-1 space-y-6">
           <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-text-muted mb-4">Assinatura Atual</h3>
-            
             <div className="space-y-4">
               <div>
                 <p className="text-xs text-text-secondary">Plano Ativo</p>
@@ -125,32 +152,27 @@ export default function Faturamento() {
                 <div className="mt-1.5">
                   {status === 'ativo' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold rounded-full">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      Assinatura Ativa
+                      <ShieldCheck className="w-3.5 h-3.5" /> Assinatura Ativa
                     </span>
                   )}
                   {status === 'trial' && isSubscriptionActive() && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-full">
-                      <Calendar className="w-3.5 h-3.5 animate-pulse" />
-                      Período de Testes ({daysRemaining} dias restantes)
+                      <Calendar className="w-3.5 h-3.5 animate-pulse" /> Período de Testes ({daysRemaining} dias)
                     </span>
                   )}
                   {status === 'trial' && !isSubscriptionActive() && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-full">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Trial Expirado
+                      <AlertTriangle className="w-3.5 h-3.5" /> Trial Expirado
                     </span>
                   )}
                   {status === 'suspenso' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-full">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Suspenso por Inadimplência
+                      <AlertTriangle className="w-3.5 h-3.5" /> Suspenso por Inadimplência
                     </span>
                   )}
                   {status === 'cancelado' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold rounded-full">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Assinatura Cancelada
+                      <AlertTriangle className="w-3.5 h-3.5" /> Assinatura Cancelada
                     </span>
                   )}
                 </div>
@@ -166,64 +188,33 @@ export default function Faturamento() {
               )}
 
               {status === 'ativo' && (
-                <div className="pt-4 border-t border-border space-y-2">
-                  {isPremium ? (
-                    <>
-                      <button
-                        onClick={async () => {
-                          if (!profile?.estabelecimento_id) return;
-                          setLoading(true);
-                          try {
-                            const { error } = await supabase
-                              .from('estabelecimentos')
-                              .update({ plano: 'basico' })
-                              .eq('id', profile.estabelecimento_id);
-                            if (error) throw error;
-                            await refreshProfile();
-                            alert('Plano alterado para Básico (Assinatura ativa para teste).');
-                          } catch (err) {
-                            console.error(err);
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        disabled={loading}
-                        className="w-full py-2.5 px-4 text-xs font-semibold text-text-primary border border-border hover:bg-bg rounded-xl transition-all cursor-pointer"
-                      >
-                        Mudar para Plano Básico (Teste)
-                      </button>
-                      <button
-                        onClick={handleCancelSubscription}
-                        disabled={loading}
-                        className="w-full py-2.5 px-4 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50/50 rounded-xl transition-all cursor-pointer"
-                      >
-                        {loading ? 'Cancelando...' : 'Cancelar Assinatura'}
-                      </button>
-                    </>
-                  ) : (
+                <div className="pt-4 border-t border-border">
+                  {!cancelConfirm ? (
                     <button
-                      onClick={async () => {
-                        if (!profile?.estabelecimento_id) return;
-                        setLoading(true);
-                        try {
-                          const { error } = await supabase
-                            .from('estabelecimentos')
-                            .update({ plano: 'premium' })
-                            .eq('id', profile.estabelecimento_id);
-                          if (error) throw error;
-                          await refreshProfile();
-                          alert('Plano alterado para Premium (Assinatura ativa para teste).');
-                        } catch (err) {
-                          console.error(err);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      disabled={loading}
-                      className="w-full py-2.5 px-4 text-xs font-semibold text-rose-600 border border-rose-200 hover:bg-rose-50/50 rounded-xl transition-all cursor-pointer"
+                      onClick={() => setCancelConfirm(true)}
+                      className="w-full py-2.5 px-4 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50/50 rounded-xl transition-all cursor-pointer"
                     >
-                      Mudar para Plano Premium (Teste)
+                      Cancelar Assinatura
                     </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-text-secondary text-center">Tem certeza? Você perderá o acesso às funcionalidades do plano.</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCancelConfirm(false)}
+                          className="flex-1 py-2 border border-border rounded-xl text-xs font-semibold text-text-secondary cursor-pointer"
+                        >
+                          Voltar
+                        </button>
+                        <button
+                          onClick={handleCancelSubscription}
+                          disabled={cancelLoading}
+                          className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          {cancelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Confirmar'}
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -231,27 +222,25 @@ export default function Faturamento() {
           </div>
         </div>
 
-        {/* Painel Direito: Escolha de Planos e Simulação de Pagamento */}
+        {/* Painel Direito */}
         <div className="md:col-span-2 space-y-8">
-          
-          {checkoutMode === 'none' ? (
+
+          {checkoutMode === 'none' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* CARD PLANO BÁSICO */}
+
+              {/* PLANO BÁSICO */}
               <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between ${!isPremium ? 'border-text-primary ring-2 ring-text-primary/10' : 'border-border'}`}>
                 <div>
                   <div className="p-6 bg-gradient-to-tr from-rose-500/10 via-pink-500/5 to-transparent border-b border-border">
                     <h2 className="font-title font-bold text-lg text-text-primary flex items-center gap-2">
-                      <Users className="w-5 h-5 text-text-secondary" />
-                      Plano Básico (CRM)
+                      <Users className="w-5 h-5 text-text-secondary" /> Plano Básico (CRM)
                     </h2>
-                    <p className="text-xs text-text-secondary mt-1">Ideal para profissionais que desejam apenas organizar a carteira de clientes e prontuários.</p>
+                    <p className="text-xs text-text-secondary mt-1">Ideal para organizar a carteira de clientes e prontuários.</p>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="text-2xl font-extrabold font-title text-text-primary">R$ 59,90</span>
                       <span className="text-xs font-semibold text-text-secondary">/ mês</span>
                     </div>
                   </div>
-
                   <div className="p-6 space-y-4">
                     {!isPremium && status === 'trial' && (
                       <div className="py-1.5 text-center text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg border border-amber-200">
@@ -259,63 +248,43 @@ export default function Faturamento() {
                       </div>
                     )}
                     <ul className="space-y-2.5 text-xs text-text-secondary">
-                      {['Cadastro de Clientes ilimitado', 'Fichas de Anamnese Customizadas', 'Dashboard de Relatórios', 'Histórico de Atendimentos', 'Suporte por E-mail'].map((feat) => (
+                      {['Cadastro de Clientes ilimitado', 'Fichas de Anamnese Customizadas', 'Meu Estúdio (Relatórios)', 'Histórico de Atendimentos', 'Suporte por E-mail'].map(feat => (
                         <li key={feat} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" />
-                          <span>{feat}</span>
+                          <Check className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" />{feat}
                         </li>
                       ))}
                     </ul>
                   </div>
                 </div>
-
                 <div className="p-6 border-t border-border">
                   {!isPremium && status === 'ativo' ? (
-                    <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">
-                      Plano Ativo
-                    </div>
+                    <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">Plano Ativo</div>
                   ) : (
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedPlanToBuy('basico');
-                          setCheckoutMode('pix');
-                        }}
-                        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        Assinar via Pix
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedPlanToBuy('basico');
-                          setCheckoutMode('card');
-                        }}
-                        className="w-full py-2.5 border border-border hover:bg-bg text-text-primary rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <CreditCard className="w-3.5 h-3.5" />
-                        Assinar via Cartão
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleAsaasCheckout('basico')}
+                      disabled={loading}
+                      className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                    >
+                      {loading && selectedPlanToBuy === 'basico' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5" />}
+                      Assinar via Pix
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* CARD PLANO PREMIUM */}
+              {/* PLANO PREMIUM */}
               <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between ${isPremium ? 'border-rose-600 ring-2 ring-rose-100' : 'border-border'}`}>
                 <div>
                   <div className="p-6 bg-gradient-to-tr from-rose-500/10 via-pink-500/5 to-transparent border-b border-border">
                     <h2 className="font-title font-bold text-lg text-text-primary flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-rose-600" />
-                      Plano Premium (Agenda)
+                      <Sparkles className="w-5 h-5 text-rose-600" /> Plano Premium (Agenda)
                     </h2>
-                    <p className="text-xs text-text-secondary mt-1">Perfeito para quem quer automatizar a recepção de agendamentos 24h por dia das clientes.</p>
+                    <p className="text-xs text-text-secondary mt-1">Para quem quer automatizar o agendamento 24h por dia.</p>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="text-2xl font-extrabold font-title text-text-primary">R$ 99,90</span>
                       <span className="text-xs font-semibold text-text-secondary">/ mês</span>
                     </div>
                   </div>
-
                   <div className="p-6 space-y-4">
                     {isPremium && status === 'trial' && (
                       <div className="py-1.5 text-center text-xs font-semibold text-rose-700 bg-rose-50 rounded-lg border border-rose-200">
@@ -323,7 +292,7 @@ export default function Faturamento() {
                       </div>
                     )}
                     <ul className="space-y-2.5 text-xs text-text-secondary">
-                      {['TUDO do Plano Básico', 'Portal de Agendamento Online', 'Horários Dinâmicos', 'Bloqueios Rápidos de Agenda', 'Aprovação Manual/Automática', 'Suporte Prioritário'].map((feat) => (
+                      {['TUDO do Plano Básico', 'Portal de Agendamento Online', 'Horários Dinâmicos', 'Bloqueios Rápidos de Agenda', 'Aprovação Manual/Automática', 'Suporte Prioritário'].map(feat => (
                         <li key={feat} className="flex items-start gap-2">
                           <Check className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" />
                           <span className={feat.startsWith('TUDO') ? 'font-semibold text-text-primary' : ''}>{feat}</span>
@@ -332,166 +301,110 @@ export default function Faturamento() {
                     </ul>
                   </div>
                 </div>
-
                 <div className="p-6 border-t border-border">
                   {isPremium && status === 'ativo' ? (
-                    <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">
-                      Plano Ativo
-                    </div>
+                    <div className="py-2 text-center text-xs font-semibold text-green-700 bg-green-50 rounded-xl border border-green-200">Plano Ativo</div>
                   ) : (
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedPlanToBuy('premium');
-                          setCheckoutMode('pix');
-                        }}
-                        className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        Assinar via Pix
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedPlanToBuy('premium');
-                          setCheckoutMode('card');
-                        }}
-                        className="w-full py-2.5 border border-border hover:bg-bg text-text-primary rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <CreditCard className="w-3.5 h-3.5" />
-                        Assinar via Cartão
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleAsaasCheckout('premium')}
+                      disabled={loading}
+                      className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                    >
+                      {loading && selectedPlanToBuy === 'premium' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <QrCode className="w-3.5 h-3.5" />}
+                      Assinar via Pix
+                    </button>
                   )}
                 </div>
               </div>
 
-            </div>
-          ) : (
-            /* Tela de Simulação de Checkout do Asaas */
-            <div className="bg-white border border-border rounded-2xl shadow-sm p-6 md:p-8 animate-fade-in relative">
-              <h2 className="font-title font-bold text-xl text-text-primary mb-2 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-rose-600" />
-                Checkout Asaas - Plano {selectedPlanToBuy === 'premium' ? 'Premium (R$ 99,90)' : 'Básico (R$ 59,90)'}
-              </h2>
-              <p className="text-sm text-text-secondary mb-6">Esta tela simula o checkout seguro e emissão de cobrança do gateway Asaas.</p>
-
-              {checkoutMode === 'pix' ? (
-                <div className="space-y-6 flex flex-col items-center">
-                  <div className="p-4 bg-gray-50 border border-border rounded-2xl flex flex-col items-center justify-center w-48 h-48 shadow-inner animate-pulse">
-                    {/* QR Code Simulado */}
-                    <svg viewBox="0 0 100 100" className="w-36 h-36 text-text-primary">
-                      <rect width="100" height="100" fill="none" />
-                      <path d="M10,10 h20 v20 h-20 z M15,15 h10 v10 h-10 z" fill="currentColor" />
-                      <path d="M70,10 h20 v20 h-20 z M75,15 h10 v10 h-10 z" fill="currentColor" />
-                      <path d="M10,70 h20 v20 h-20 z M15,75 h10 v10 h-10 z" fill="currentColor" />
-                      <path d="M40,10 h10 v10 h-10 z M55,15 h10 v10 h-10 z M45,45 h20 v20 h-20 z" fill="currentColor" />
-                      <path d="M75,75 h15 v5 h-15 z M85,85 h5 v5 h-5 z" fill="currentColor" />
-                    </svg>
-                  </div>
-
-                  <div className="w-full text-center">
-                    <p className="text-sm font-semibold text-text-primary">Código Copia e Cola Pix:</p>
-                    <div className="mt-2 p-3 bg-bg border border-border rounded-xl text-xs font-mono text-text-secondary select-all break-all">
-                      00020101021226830014br.gov.bcb.pix2561asaas.com/qr/v2/simulated_pix_code_{selectedPlanToBuy}_lashly
-                    </div>
-                  </div>
-
-                  <div className="w-full flex gap-3 pt-4 border-t border-border">
-                    <button
-                      onClick={() => setCheckoutMode('none')}
-                      className="flex-1 py-2.5 border border-border hover:bg-bg rounded-xl text-xs font-semibold text-text-secondary transition-all cursor-pointer"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      onClick={handleSimulateAsaasPayment}
-                      disabled={loading}
-                      className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                    >
-                      {loading ? 'Confirmando...' : 'Confirmar Pagamento Pix'}
-                    </button>
-                  </div>
+              {checkoutError && (
+                <div className="md:col-span-2 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-xs">
+                  <X className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{checkoutError}</span>
                 </div>
-              ) : (
-                /* Cartão de Crédito */
-                <form onSubmit={(e) => { e.preventDefault(); handleSimulateAsaasPayment(); }} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-text-secondary block">Nome Impresso no Cartão</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: AMANDA SOUZA"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2.5 border border-border rounded-xl bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-text-secondary block">Número do Cartão</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={19}
-                      placeholder="4444 5555 6666 7777"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim())}
-                      className="w-full px-3 py-2.5 border border-border rounded-xl bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-text-secondary block">Validade</label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={5}
-                        placeholder="MM/AA"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value.replace(/\D/g, '').replace(/(\d{2})/, '$1/').substring(0, 5))}
-                        className="w-full px-3 py-2.5 border border-border rounded-xl bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-text-secondary block">CVV</label>
-                      <input
-                        type="password"
-                        required
-                        maxLength={3}
-                        placeholder="123"
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                        className="w-full px-3 py-2.5 border border-border rounded-xl bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="w-full flex gap-3 pt-6 border-t border-border">
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutMode('none')}
-                      className="flex-1 py-2.5 border border-border hover:bg-bg rounded-xl text-xs font-semibold text-text-secondary transition-all cursor-pointer"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                    >
-                      {loading ? 'Confirmando...' : 'Assinar com Cartão'}
-                    </button>
-                  </div>
-                </form>
               )}
+
+            </div>
+          )}
+
+          {/* QR Code Pix */}
+          {checkoutMode === 'pix' && (
+            <div className="bg-white border border-border rounded-2xl shadow-sm p-6 md:p-8 animate-fade-in">
+              <h2 className="font-title font-bold text-xl text-text-primary mb-1 flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-rose-600" />
+                Pague via Pix — Plano {selectedPlanToBuy === 'premium' ? 'Premium' : 'Básico'}
+              </h2>
+              <p className="text-sm text-text-secondary mb-6">Escaneie o QR Code ou copie o código Pix abaixo. O acesso é liberado automaticamente após a confirmação.</p>
+
+              <div className="flex flex-col items-center gap-6">
+                {/* QR Code */}
+                {pixQrCodeImage ? (
+                  <div className="p-3 bg-white border-2 border-border rounded-2xl shadow-inner">
+                    <img src={`data:image/png;base64,${pixQrCodeImage}`} alt="QR Code Pix" className="w-52 h-52" />
+                  </div>
+                ) : (
+                  <div className="w-52 h-52 bg-bg border border-border rounded-2xl flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-rose-400 animate-spin" />
+                  </div>
+                )}
+
+                {/* Código copia e cola */}
+                {pixKey && (
+                  <div className="w-full space-y-2">
+                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Código Pix — Copia e Cola</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 p-3 bg-bg border border-border rounded-xl text-xs font-mono text-text-secondary break-all select-all">
+                        {pixKey}
+                      </div>
+                      <button
+                        onClick={handleCopyPix}
+                        className="shrink-0 p-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors cursor-pointer"
+                        title="Copiar código Pix"
+                      >
+                        {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {copied && <p className="text-xs text-green-600 font-semibold">Copiado!</p>}
+                  </div>
+                )}
+
+                {/* Status de aguardo */}
+                <div className="flex items-center gap-2 text-xs text-text-muted">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Aguardando confirmação do pagamento...
+                </div>
+
+                <button
+                  onClick={handleBackFromCheckout}
+                  className="text-xs text-text-secondary hover:text-rose-600 underline cursor-pointer transition-colors"
+                >
+                  Cancelar e voltar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Sucesso */}
+          {checkoutMode === 'success' && (
+            <div className="bg-white border border-green-200 rounded-2xl shadow-sm p-8 text-center animate-fade-in">
+              <div className="w-16 h-16 rounded-full bg-green-50 border border-green-200 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="font-title font-bold text-xl text-text-primary mb-1">Pagamento Confirmado!</h2>
+              <p className="text-sm text-text-secondary mb-6">
+                Seu Plano {selectedPlanToBuy === 'premium' ? 'Premium' : 'Básico'} está ativo. Bem-vinda!
+              </p>
+              <button
+                onClick={() => setCheckoutMode('none')}
+                className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+              >
+                Voltar para Minha Assinatura
+              </button>
             </div>
           )}
 
         </div>
-
       </div>
-
     </div>
   );
 }
