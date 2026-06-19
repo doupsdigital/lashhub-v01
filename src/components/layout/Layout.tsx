@@ -11,7 +11,10 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   return (
-    <div className="h-screen bg-bg flex font-sans overflow-hidden">
+    <div
+      className="min-h-screen bg-bg flex font-sans"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       {/* Sidebar Navigation */}
       <Sidebar
         collapsed={collapsed}
@@ -29,7 +32,7 @@ export default function Layout() {
       >
         <Header setMobileOpen={setMobileOpen} />
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 p-6 md:p-8 max-w-[1600px] w-full mx-auto">
           <Outlet />
         </main>
       </div>
