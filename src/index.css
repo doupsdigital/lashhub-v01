@@ -318,3 +318,12 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* iOS: impede o auto-zoom da viewport ao focar inputs com font-size < 16px.
+   Sem isso, o iOS reescala o viewport ao focar qualquer campo de texto,
+   corrompendo o layout até o app ser reiniciado. */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
