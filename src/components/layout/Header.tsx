@@ -65,7 +65,7 @@ export default function Header({ setMobileOpen }: HeaderProps) {
 
         {/* Título — absolutamente centralizado */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <h1 className="font-title font-semibold text-xl text-text-primary leading-tight">
+          <h1 className="font-title font-semibold text-2xl text-text-primary leading-tight">
             {title}
           </h1>
         </div>
