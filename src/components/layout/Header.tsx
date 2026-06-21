@@ -1,5 +1,14 @@
 import { useLocation } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import {
+  Menu,
+  LayoutGrid,
+  Users,
+  Tag,
+  Calendar,
+  Clock,
+  Settings,
+  CreditCard,
+} from 'lucide-react';
 
 interface HeaderProps {
   setMobileOpen: (open: boolean) => void;
@@ -8,42 +17,67 @@ interface HeaderProps {
 export default function Header({ setMobileOpen }: HeaderProps) {
   const location = useLocation();
 
-  // Mapeamento de rotas para títulos da página
-  const getPageInfo = (pathname: string): { title: string; subtitle?: string } => {
+  // Mapeamento de rotas para títulos + ícones (mesmos do Sidebar)
+  const getPageInfo = (pathname: string): {
+    title: string;
+    subtitle?: string;
+    Icon: React.ComponentType<{ className?: string }>;
+  } => {
     switch (pathname) {
       case '/meu-estudio':
-        return { title: 'Meu Estúdio' };
+        return { title: 'Meu Estúdio', Icon: LayoutGrid };
       case '/clientes':
-        return { title: 'Clientes' };
+        return { title: 'Clientes', Icon: Users };
       case '/servicos':
-        return { title: 'Serviços' };
+        return { title: 'Serviços', Icon: Tag };
       case '/agendamentos':
-        return { title: 'Agendamentos' };
+        return { title: 'Agendamentos', Icon: Calendar };
       case '/meus-horarios':
-        return { title: 'Meus Horários', subtitle: 'Gerencie seu expediente e bloqueios de agenda' };
+        return {
+          title: 'Meus Horários',
+          subtitle: 'Gerencie seu expediente e bloqueios de agenda',
+          Icon: Clock,
+        };
       case '/configuracoes':
-        return { title: 'Configurações' };
+        return { title: 'Configurações', Icon: Settings };
       case '/assinatura':
-        return { title: 'Minha Assinatura' };
+        return { title: 'Minha Assinatura', Icon: CreditCard };
       default:
-        if (pathname.startsWith('/clientes/')) return { title: 'Perfil do Cliente' };
-        return { title: 'Studio' };
+        if (pathname.startsWith('/clientes/')) return { title: 'Perfil do Cliente', Icon: Users };
+        return { title: 'Studio', Icon: LayoutGrid };
     }
   };
 
-  const { title, subtitle } = getPageInfo(location.pathname);
+  const { title, subtitle, Icon } = getPageInfo(location.pathname);
 
   return (
-    <header className="h-[60px] bg-white border-b border-border flex items-center justify-between px-6 sticky top-0 z-30">
-      <div className="flex items-center gap-3">
-        {/* Acionador do menu Mobile */}
+    <header className="h-[60px] bg-white border-b border-border sticky top-0 z-30">
+
+      {/* ── MOBILE ── */}
+      <div className="flex md:hidden items-center justify-between px-4 h-full relative">
+        {/* Ícone sanduíche — esquerda */}
         <button
           onClick={() => setMobileOpen(true)}
-          className="md:hidden text-text-secondary hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 cursor-pointer"
+          className="text-text-secondary hover:text-rose-600 p-1.5 rounded-md hover:bg-rose-50 cursor-pointer flex-shrink-0"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5" />
         </button>
 
+        {/* Título — absolutamente centralizado */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <h1 className="font-title font-semibold text-xl text-text-primary leading-tight">
+            {title}
+          </h1>
+        </div>
+
+        {/* Ícone da página — direita */}
+        <div className="p-1.5 flex-shrink-0 text-text-secondary">
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+
+      {/* ── DESKTOP ── */}
+      <div className="hidden md:flex items-center px-6 h-full">
         <div>
           <h1 className="font-title font-semibold text-2xl text-text-primary leading-tight">
             {title}
@@ -53,6 +87,7 @@ export default function Header({ setMobileOpen }: HeaderProps) {
           )}
         </div>
       </div>
+
     </header>
   );
 }

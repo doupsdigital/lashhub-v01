@@ -62,7 +62,12 @@ const DIAS_SEMANA = [
 export default function Agendamentos() {
   const { isProfissional, estabelecimentoId } = useAuth();
   const location = useLocation();
-  const [viewMode, setViewMode] = useState<'mensal' | 'semanal' | 'diaria'>('mensal');
+  const [viewMode, setViewMode] = useState<'mensal' | 'semanal' | 'diaria'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      return 'diaria';
+    }
+    return 'mensal';
+  });
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     const d = new Date();
     d.setHours(12, 0, 0, 0);
@@ -1020,7 +1025,7 @@ export default function Agendamentos() {
           
           {/* Title & Navigation */}
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-4">
               <h2 className="font-title font-semibold text-2xl text-text-primary">Agendamentos</h2>
               
               <div className="flex items-center bg-bg rounded-lg p-0.5 border border-border/40">

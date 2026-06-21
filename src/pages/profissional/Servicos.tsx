@@ -550,7 +550,7 @@ export default function Servicos() {
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 self-end sm:self-auto">
                   <button
                     onClick={() => handleOpenCategoriaModal(cat)}
                     className="p-1.5 text-text-secondary hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
