@@ -172,7 +172,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
       {/* Sidebar Container */}
       <aside
         className={`
-          fixed top-0 bottom-0 left-0 bg-white border-r border-border z-50 flex flex-col overflow-hidden
+          fixed top-0 bottom-0 left-0 bg-white border-r border-border z-50 flex flex-col
           transition-all duration-300 ease-in-out
           ${collapsed ? 'w-[64px]' : 'w-[220px]'}
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
