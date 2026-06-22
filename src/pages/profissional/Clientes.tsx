@@ -477,7 +477,7 @@ export default function Clientes() {
                     >
                       {/* Avatar + Name */}
                       <td className="px-6 py-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-rose-100 border border-rose-200 text-rose-800 flex items-center justify-center font-title font-semibold text-sm">
+                        <div className="w-9 h-9 flex-shrink-0 rounded-full bg-rose-100 border border-rose-200 text-rose-800 flex items-center justify-center font-title font-semibold text-sm">
                           {initials}
                         </div>
                         <div>
