@@ -690,7 +690,7 @@ export default function Servicos() {
                 <input 
                   type="text" 
                   required
-                  placeholder="Ex: Depilação, Cílios, Massagem..."
+                  placeholder="Ex: Extensão de Cílios, Lash Lifting, Sobrancelhas..."
                   value={categoriaNome}
                   onChange={(e) => setCategoriaNome(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
