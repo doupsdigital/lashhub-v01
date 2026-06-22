@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
@@ -89,6 +90,7 @@ function PaymentButtons({
 }
 
 export default function Faturamento() {
+  const navigate = useNavigate();
   const { profile, refreshProfile } = useAuth();
   const { isSubscriptionActive, isPremium, status, trialEndsAt } = useSubscription();
 
@@ -108,12 +110,31 @@ export default function Faturamento() {
   const [cardLoading, setCardLoading] = useState(false);
   const [showAsaasInfo, setShowAsaasInfo] = useState(false);
 
+  const [countdown, setCountdown] = useState(3);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const daysRemaining = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000))
     : 0;
+
+  // Countdown e redirecionamento após pagamento confirmado
+  useEffect(() => {
+    if (checkoutMode !== 'success') return;
+    setCountdown(3);
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          const dest = selectedPlanToBuy === 'premium' ? '/agendamentos' : '/meu-estudio';
+          navigate(dest, { state: { welcomePlano: selectedPlanToBuy } });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [checkoutMode, selectedPlanToBuy, navigate]);
 
   // Para o polling ao desmontar
   useEffect(() => {
@@ -605,14 +626,24 @@ export default function Faturamento() {
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
               <h2 className="font-title font-bold text-xl text-text-primary mb-1">Pagamento Confirmado!</h2>
-              <p className="text-sm text-text-secondary mb-6">
+              <p className="text-sm text-text-secondary mb-1">
                 Seu Plano {selectedPlanToBuy === 'premium' ? 'Premium' : 'Básico'} está ativo. Bem-vinda!
               </p>
+              <p className="text-xs text-text-muted mb-6">
+                Redirecionando para{' '}
+                <span className="font-semibold text-text-secondary">
+                  {selectedPlanToBuy === 'premium' ? 'Agendamentos' : 'Meu Estúdio'}
+                </span>{' '}
+                em {countdown}...
+              </p>
               <button
-                onClick={() => setCheckoutMode('none')}
+                onClick={() => navigate(
+                  selectedPlanToBuy === 'premium' ? '/agendamentos' : '/meu-estudio',
+                  { state: { welcomePlano: selectedPlanToBuy } }
+                )}
                 className="px-8 py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-rose-600/15"
               >
-                Voltar para Minha Assinatura
+                Ir agora →
               </button>
             </div>
           )}
