@@ -114,10 +114,10 @@ serve(async (req) => {
       })
       .eq('id', estabelecimento_id)
 
-    // Modo cartão: retorna apenas o invoiceUrl (sem QR Code)
+    // Modo cartão: retorna invoiceUrl + paymentId (necessário para polling)
     if (mode === 'card') {
       return new Response(
-        JSON.stringify({ invoiceUrl: payment.invoiceUrl }),
+        JSON.stringify({ invoiceUrl: payment.invoiceUrl, paymentId: payment.id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
