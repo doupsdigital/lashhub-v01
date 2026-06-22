@@ -438,8 +438,11 @@ CREATE POLICY "clientes_anon_insert"
 
 -- Função RPC usada no cadastro do portal para verificar se a profissional já
 -- cadastrou a cliente manualmente (bypass de RLS — retorna apenas o UUID).
-CREATE OR REPLACE FUNCTION public.get_cliente_id_by_email(
-  p_email           TEXT,
+-- Tenta match por email primeiro; fallback por WhatsApp (apenas dígitos) quando
+-- o registro manual não possui email — e só se ainda não há conta de acesso.
+CREATE OR REPLACE FUNCTION public.get_cliente_id_by_email_or_whatsapp(
+  p_email              TEXT,
+  p_whatsapp_digits    TEXT,
   p_estabelecimento_id UUID
 )
 RETURNS UUID
@@ -447,14 +450,31 @@ LANGUAGE SQL
 SECURITY DEFINER
 SET search_path = public
 AS $$
+  -- 1ª tentativa: match por email
   SELECT id
   FROM public.clientes
   WHERE LOWER(email) = LOWER(p_email)
     AND estabelecimento_id = p_estabelecimento_id
+  LIMIT 1
+
+  UNION ALL
+
+  -- 2ª tentativa: fallback por WhatsApp (apenas dígitos) quando sem email
+  -- e somente se o registro ainda não tem conta de acesso (sem usuarios)
+  SELECT c.id
+  FROM public.clientes c
+  WHERE REGEXP_REPLACE(c.whatsapp, '[^0-9]', '', 'g') = p_whatsapp_digits
+    AND c.estabelecimento_id = p_estabelecimento_id
+    AND (c.email IS NULL OR c.email = '')
+    AND NOT EXISTS (
+      SELECT 1 FROM public.usuarios u WHERE u.cliente_id = c.id
+    )
+  LIMIT 1
+
   LIMIT 1;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.get_cliente_id_by_email TO anon;
+GRANT EXECUTE ON FUNCTION public.get_cliente_id_by_email_or_whatsapp TO anon;
 
 -- CATEGORIAS DE SERVIÇO
 CREATE POLICY "categorias_public_select"

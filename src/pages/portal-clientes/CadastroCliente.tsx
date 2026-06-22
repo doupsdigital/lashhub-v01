@@ -79,10 +79,13 @@ export default function CadastroCliente() {
       }
 
       // Passo 2 — Verificar se a profissional já cadastrou essa cliente manualmente
+      // Tenta email primeiro; fallback por WhatsApp (somente dígitos) se sem email.
       // Usa RPC com SECURITY DEFINER para contornar RLS (anon não tem SELECT em clientes)
+      const whatsappDigits = form.whatsapp.replace(/\D/g, '');
       const { data: clienteExistenteId } = await supabase
-        .rpc('get_cliente_id_by_email', {
+        .rpc('get_cliente_id_by_email_or_whatsapp', {
           p_email: form.email.trim().toLowerCase(),
+          p_whatsapp_digits: whatsappDigits,
           p_estabelecimento_id: establishmentId,
         });
       const clienteExistente = clienteExistenteId ? { id: clienteExistenteId as string } : null;
