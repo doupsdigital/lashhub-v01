@@ -308,6 +308,15 @@ body {
   background-color: var(--bg) !important;
   opacity: 0.45 !important;
 }
+/* Botão outline de pagamento — elevação sutil em dark mode */
+.dark .btn-outline-payment {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+.dark .btn-outline-payment:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 /* Remove as setas de aumentar/diminuir de campos de número globalmente */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
