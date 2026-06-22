@@ -6,8 +6,8 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function PortalLogin() {
   const navigate = useNavigate();
-  const { user, isCliente, loading: authLoading, signIn } = useAuth();
-  const { slug, loading: portalLoading } = usePortal();
+  const { user, isCliente, loading: authLoading, signIn, signOut, estabelecimentoId } = useAuth();
+  const { slug, loading: portalLoading, establishmentId } = usePortal();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,17 +15,27 @@ export default function PortalLogin() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Redireciona usuário já autenticado no portal
+  // Redireciona usuário já autenticado — ou bloqueia se for cliente de outro estúdio
   useEffect(() => {
-    if (!authLoading && user) {
-      if (isCliente) {
-        navigate(`/portal/${slug}/catalogo`, { replace: true });
-      } else {
-        // Se profissional tentar acessar login do portal, manda pro dashboard
-        navigate('/meu-estudio', { replace: true });
-      }
+    if (authLoading || portalLoading) return;
+    if (!user) return;
+
+    if (!isCliente) {
+      // Profissional tentando acessar portal → manda pro dashboard
+      navigate('/meu-estudio', { replace: true });
+      return;
     }
-  }, [authLoading, user, isCliente, navigate, slug]);
+
+    // Cliente autenticada: verificar se pertence a este estúdio
+    if (estabelecimentoId && establishmentId && estabelecimentoId !== establishmentId) {
+      signOut();
+      setErrorMsg('Você não tem cadastro neste estúdio. Acesse o portal do seu estúdio pelo link que a sua profissional enviou.');
+      setSubmitting(false);
+      return;
+    }
+
+    navigate(`/portal/${slug}/catalogo`, { replace: true });
+  }, [authLoading, portalLoading, user, isCliente, navigate, slug, estabelecimentoId, establishmentId]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
