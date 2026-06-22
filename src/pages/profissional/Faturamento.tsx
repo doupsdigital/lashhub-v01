@@ -192,6 +192,21 @@ export default function Faturamento() {
     pollingTimeoutRef.current = setTimeout(stopPolling, 15 * 60 * 1000);
   };
 
+  const formatCpfCnpj = (value: string): string => {
+    const digits = value.replace(/\D/g, '').substring(0, 14);
+    if (digits.length <= 11) {
+      return digits
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+    return digits
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  };
+
   const validateCpfCnpj = (value: string) => {
     const digits = value.replace(/\D/g, '');
     return digits.length === 11 || digits.length === 14;
@@ -267,7 +282,13 @@ export default function Faturamento() {
       setCheckoutMode('pix');
       startPolling(profile.estabelecimento_id, data.paymentId ?? null);
     } catch (err: unknown) {
-      setCheckoutError(err instanceof Error ? err.message : 'Erro ao gerar cobrança. Tente novamente.');
+      const msg = err instanceof Error ? err.message : '';
+      const isEdgeFnError = msg.toLowerCase().includes('non-2xx') || msg.toLowerCase().includes('edge function');
+      setCheckoutError(
+        isEdgeFnError
+          ? 'CPF ou CNPJ inválido ou não aceito. Verifique os dados e tente novamente.'
+          : msg || 'Erro ao gerar cobrança. Tente novamente.'
+      );
     } finally {
       setLoading(false);
     }
@@ -528,9 +549,14 @@ export default function Faturamento() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Somente números — CPF (11 dígitos) ou CNPJ (14 dígitos)"
+                    inputMode="numeric"
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
                     value={cpfInput}
-                    onChange={(e) => { setCpfInput(e.target.value); setCpfError(null); }}
+                    onChange={(e) => {
+                      setCpfInput(formatCpfCnpj(e.target.value));
+                      setCpfError(null);
+                      setCheckoutError(null);
+                    }}
                     className="w-full px-3 py-2.5 border border-border rounded-xl bg-bg text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-text-muted"
                     onKeyDown={(e) => e.key === 'Enter' && handleCpfSubmit()}
                   />
