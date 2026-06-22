@@ -1,30 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, X } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';
 
-const DISMISS_KEY = 'trial-banner-dismissed-until';
-
 export default function TrialBanner() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { status, trialEndsAt, loading } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    const dismissedUntil = localStorage.getItem(DISMISS_KEY);
-    if (dismissedUntil && new Date(dismissedUntil) > new Date()) {
-      setDismissed(true);
-    }
-  }, []);
-
-  const handleDismiss = () => {
-    const until = new Date();
-    until.setHours(until.getHours() + 24);
-    localStorage.setItem(DISMISS_KEY, until.toISOString());
-    setDismissed(true);
-  };
-
+  // Não exibe na página de assinatura nem se já fechou nesta sessão
   if (loading || dismissed || status !== 'trial') return null;
+  if (pathname === '/assinatura') return null;
 
   const daysLeft = trialEndsAt
     ? Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -79,8 +66,8 @@ export default function TrialBanner() {
           <span className="hidden md:block">Assinar Agora →</span>
         </button>
         <button
-          onClick={handleDismiss}
-          title="Dispensar por 24h"
+          onClick={() => setDismissed(true)}
+          title="Fechar"
           className="text-white/70 hover:text-white transition-colors cursor-pointer p-1 rounded"
         >
           <X className="w-3.5 h-3.5" />
