@@ -1712,9 +1712,9 @@ export default function Agendamentos() {
                 </div>
 
                 {/* Final value summary */}
-                <div className="bg-green-50/50 border border-green-200/60 rounded-xl p-4 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-green-700 block mb-1">Valor a registrar</span>
-                  <span className="text-2xl font-title font-bold text-green-800">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block mb-1">Valor a registrar</span>
+                  <span className="text-2xl font-title font-bold text-emerald-900">
                     R$ {(concludeUseCustom ? concludeCustomValue : totalServicos).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
