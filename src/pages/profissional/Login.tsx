@@ -64,8 +64,8 @@ export default function Login() {
           <h1 className="font-title font-bold text-3xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-rose-400">
             Lash Hub
           </h1>
-          <p className="text-xs text-text-muted mt-2 uppercase tracking-wider font-medium">
-            Acesse sua conta
+          <p className="text-xs text-text-secondary mt-2.5 font-medium leading-relaxed max-w-[280px]">
+            Simplifique sua gestão e valorize cada minuto do seu atendimento.
           </p>
         </div>
 
@@ -135,12 +135,17 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-text-secondary mt-6">
-          Não tem conta?{' '}
-          <Link to="/cadastro" className="text-rose-600 font-semibold hover:underline">
-            Cadastre-se
+        <div className="flex flex-col items-center gap-3 mt-6">
+          <p className="text-xs text-text-secondary">
+            Não tem conta?{' '}
+            <Link to="/cadastro" className="text-rose-600 font-semibold hover:underline">
+              Cadastre-se
+            </Link>
+          </p>
+          <Link to="/recuperar-senha" className="text-xs text-rose-600 font-semibold hover:underline">
+            Esqueci minha senha
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

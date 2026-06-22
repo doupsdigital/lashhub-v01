@@ -23,6 +23,8 @@ import PortalPerfil from './pages/portal-clientes/PortalPerfil';
 import CadastroCliente from './pages/portal-clientes/CadastroCliente';
 import PortalLogin from './pages/portal-clientes/PortalLogin';
 import { PortalProvider } from './contexts/PortalContext';
+import RecuperarSenha from './pages/profissional/RecuperarSenha';
+import RedefinirSenha from './pages/profissional/RedefinirSenha';
 
 import PlanGuard from './components/common/PlanGuard';
 import BillingGuard from './components/common/BillingGuard';
@@ -82,6 +84,8 @@ export default function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<CadastroProfissional />} />
+          <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
           {/* Rotas da profissional */}
           <Route
