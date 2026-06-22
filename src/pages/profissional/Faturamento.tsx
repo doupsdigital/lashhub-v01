@@ -102,7 +102,6 @@ export default function Faturamento() {
 
   const [pixQrCodeImage, setPixQrCodeImage] = useState<string | null>(null);
   const [pixKey, setPixKey] = useState<string | null>(null);
-  const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
@@ -278,7 +277,6 @@ export default function Faturamento() {
 
       setPixQrCodeImage(data.pixQrCodeImage);
       setPixKey(data.pixKey);
-      setCurrentPaymentId(data.paymentId ?? null);
       setCheckoutMode('pix');
       startPolling(profile.estabelecimento_id, data.paymentId ?? null);
     } catch (err: unknown) {
