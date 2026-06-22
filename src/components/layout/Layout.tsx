@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import TrialBanner from '../common/TrialBanner';
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
@@ -48,6 +49,7 @@ export default function Layout() {
         `}
       >
         <Header setMobileOpen={setMobileOpen} />
+        <TrialBanner />
 
         <main className="flex-1 p-6 md:p-8 max-w-[1600px] w-full mx-auto">
           <Outlet />
