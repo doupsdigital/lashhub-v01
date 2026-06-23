@@ -50,7 +50,7 @@ export default function InstallBanner() {
           <img
             src="/logotrans2.png"
             alt="Lash Hub"
-            className="w-[75%] h-[75%] object-contain"
+            className="w-[85%] h-[85%] object-contain"
           />
         </div>
 

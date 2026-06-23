@@ -44,7 +44,7 @@ export default function RecuperarSenha() {
             <img
               src="/logotrans2.png"
               alt="Lash Hub"
-              className="w-[70%] h-[70%] object-contain"
+              className="w-[85%] h-[85%] object-contain"
             />
           </div>
           <h1 className="font-title font-bold text-3xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-rose-400">
