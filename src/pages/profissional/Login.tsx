@@ -56,9 +56,9 @@ export default function Login() {
         <div className="flex flex-col items-center text-center mb-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-600 to-rose-400 text-white flex items-center justify-center shadow-lg mb-4 hover:scale-105 transition-transform duration-300 overflow-hidden">
             <img
-              src="/logo-login.png"
+              src="/logotransparente.png"
               alt="Lash Hub"
-              className="w-full h-full object-cover"
+              className="w-[70%] h-[70%] object-contain"
             />
           </div>
           <h1 className="font-title font-bold text-3xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-rose-400">
